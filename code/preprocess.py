@@ -22,10 +22,11 @@ def z_normalize(arr: np.ndarray) -> np.ndarray:
     std_val = np.std(arr)
     return (arr - mean_val) / std_val
 
-def dim_normalize(arr, width, height):
+def dim_normalize(arr, width=1280, height=720):
     '''
     Helper function to normalise an np.array using dimension normalization
     '''
+    arr = np.array(arr, dtype=np.float64)
     arr[0::3] /= width  # x-coordinates
     arr[1::3] /= height # y-coordinates
     return arr
@@ -37,6 +38,13 @@ def min_max_normalize(arr):
     min_val = np.min(arr)
     max_val = np.max(arr)
     return (arr - min_val) / (max_val - min_val) if max_val > min_val else arr
+
+def pos1_neg1_normalize(arr, ):
+    arr = np.array(arr, dtype=np.float64) 
+    min_val = np.min(arr)
+    max_val = np.max(arr)
+    # Normalize from -1 to 1
+    return 2 * ((arr - min_val) / (max_val - min_val)) - 1 if max_val > min_val else arr
 
 def create_trg():
     json_path =  RAW_DATA_PATH + '/openpose_output/json/'
@@ -57,11 +65,14 @@ def create_trg():
             with open(file_path, 'r') as file:
                 json_file = file.read()
                 json_data = json.loads(json_file)
-                pose_kp = z_normalize(np.array(json_data['people'][0]['pose_keypoints_2d']))
-                hand_left_kp = z_normalize(np.array(json_data['people'][0]['hand_left_keypoints_2d']))
-                hand_right_kp = z_normalize(np.array(json_data['people'][0]['hand_right_keypoints_2d']))
+                # concatenate all keypoints
+                # TODO: try different normalization functions
+                pose_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['pose_keypoints_2d']))
+                hand_left_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['hand_left_keypoints_2d']))
+                hand_right_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['hand_right_keypoints_2d']))
                 
                 json_data = np.concatenate((pose_kp, hand_left_kp, hand_right_kp))
+
     print(json_data)
 
 
