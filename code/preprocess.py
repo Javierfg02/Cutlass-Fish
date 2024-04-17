@@ -47,6 +47,9 @@ def pos1_neg1_normalize(arr, ):
     return 2 * ((arr - min_val) / (max_val - min_val)) - 1 if max_val > min_val else arr
 
 def create_trg():
+
+    output = {}
+
     json_path =  RAW_DATA_PATH + '/openpose_output/json/'
     directories = os.listdir(json_path) # get all the directories
     # for each directory get all of its json files (these store the joints data for each frame)
@@ -54,11 +57,12 @@ def create_trg():
     for i in directories:
         directory_path = os.path.join(json_path, i)
         files = os.listdir(directory_path)
-        # each json file stores the data for a frame
-        for j in sorted(files): # we need to maintain the sequence of frames so we sort files by name
 
-            if(j != sorted(files)[0]):
-                continue
+        if (i != directories[0]): #! Added to save time. Only goes through the first directory - need to go through all in the end
+            continue
+        # each json file stores the data for a frame
+        frames = []
+        for j in sorted(files): # we need to maintain the sequence of frames so we sort files by name
 
             file_path = os.path.join(directory_path, j)
             # open the file
@@ -67,14 +71,22 @@ def create_trg():
                 json_data = json.loads(json_file)
                 # concatenate all keypoints
                 # TODO: try different normalization functions
-                pose_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['pose_keypoints_2d']))
-                hand_left_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['hand_left_keypoints_2d']))
-                hand_right_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['hand_right_keypoints_2d']))
+                pose_kp = (np.array(json_data['people'][0]['pose_keypoints_2d']))
+                hand_left_kp = (np.array(json_data['people'][0]['hand_left_keypoints_2d']))
+                hand_right_kp = (np.array(json_data['people'][0]['hand_right_keypoints_2d']))
+                face_kp = (np.array(json_data['people'][0]['face_keypoints_2d']))
                 
-                json_data = np.concatenate((pose_kp, hand_left_kp, hand_right_kp))
+                concat_kp = np.concatenate((pose_kp, face_kp, hand_left_kp, hand_right_kp))
+                frames.append(concat_kp)
 
-    print(json_data)
-
+        # create a dictionary mapping directory_name (sentence_ID) to a 2D array where each row is a frame
+        #? Do we want each row to be a frame?
+        output[i] = np.stack(frames, axis=0)
+    # concatenate all sequences from each file.
+    #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
+    print(output) # TODO: Once we have the mapping from directory_name to frame data, we need to join this with the source file to
+    # TODO: to get a mapping of sentence to frame data
+    return output
 
 def create_src():
     csv_path = RAW_DATA_PATH + "/how2sign_realigned_val.csv"
@@ -94,9 +106,9 @@ def create_src():
             src_dictionary[sentence_name] = sentence
             
     
-    with open("../data/val/processed/sentence_name_to_sentence.json", "w") as outfile: 
-        json.dump(src_dictionary, outfile)
-
+    # with open("../data/val/processed/sentence_name_to_sentence.json", "w") as outfile: 
+    #     json.dump(src_dictionary, outfile)
+    return src_dictionary
 
     '''
     # Access a specific column by its name
