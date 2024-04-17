@@ -14,6 +14,30 @@ import pandas as pd
 
 RAW_DATA_PATH = '../data/val/raw'
 
+def z_normalize(arr: np.ndarray) -> np.ndarray:
+    '''
+    Helper function to normalise an np.array using Z-score normalization
+    '''
+    mean_val = np.mean(arr)
+    std_val = np.std(arr)
+    return (arr - mean_val) / std_val
+
+def dim_normalize(arr, width, height):
+    '''
+    Helper function to normalise an np.array using dimension normalization
+    '''
+    arr[0::3] /= width  # x-coordinates
+    arr[1::3] /= height # y-coordinates
+    return arr
+
+def min_max_normalize(arr):
+    '''
+    Helper function to normalise an np.array using min-max normalization
+    '''
+    min_val = np.min(arr)
+    max_val = np.max(arr)
+    return (arr - min_val) / (max_val - min_val) if max_val > min_val else arr
+
 def create_trg():
     json_path =  RAW_DATA_PATH + '/openpose_output/json/'
     directories = os.listdir(json_path) # get all the directories
@@ -24,15 +48,22 @@ def create_trg():
         files = os.listdir(directory_path)
         # each json file stores the data for a frame
         for j in sorted(files): # we need to maintain the sequence of frames so we sort files by name
-            if(j == sorted(files)[0]):
-                file_path = os.path.join(directory_path, j)
-                # open the file
-                with open(file_path, 'r') as file:
-                    json_file = file.read()
-                    json_data = json.loads(json_file)
-                    # json_data = json_data['people'][0]['pose_keypoints_2d']
-                    json_data = json_data['people']
+
+            if(j != sorted(files)[0]):
+                continue
+
+            file_path = os.path.join(directory_path, j)
+            # open the file
+            with open(file_path, 'r') as file:
+                json_file = file.read()
+                json_data = json.loads(json_file)
+                pose_kp = z_normalize(np.array(json_data['people'][0]['pose_keypoints_2d']))
+                hand_left_kp = z_normalize(np.array(json_data['people'][0]['hand_left_keypoints_2d']))
+                hand_right_kp = z_normalize(np.array(json_data['people'][0]['hand_right_keypoints_2d']))
+                
+                json_data = np.concatenate((pose_kp, hand_left_kp, hand_right_kp))
     print(json_data)
+
 
 def create_src():
     csv_path = RAW_DATA_PATH + "/how2sign_realigned_val.csv"
@@ -50,16 +81,16 @@ def create_src():
             sentence = split_row[6]
             
             src_dictionary[sentence_name] = sentence
+            
     
     with open("../data/val/processed/sentence_name_to_sentence.json", "w") as outfile: 
         json.dump(src_dictionary, outfile)
+
 
     '''
     # Access a specific column by its name
     sentence_name = df['SENTENCE_NAME']
     sentence = df['SENTENCE']'''
-
-    
 
 if __name__ == '__main__':
     create_trg()
