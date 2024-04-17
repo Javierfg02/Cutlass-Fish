@@ -80,7 +80,7 @@ def create_trg():
                 frames.append(concat_kp)
 
         # create a dictionary mapping directory_name (sentence_ID) to a 2D array where each row is a frame
-        #? Do we want each row to be a frame?
+        #? Do we want each row to be a frame? if we want, then stack as follows
         output[i] = np.stack(frames, axis=0)
     # concatenate all sequences from each file.
     #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
@@ -108,6 +108,7 @@ def create_src():
     
     # with open("../data/val/processed/sentence_name_to_sentence.json", "w") as outfile: 
     #     json.dump(src_dictionary, outfile)
+    print(src_dictionary)
     return src_dictionary
 
     '''
@@ -115,6 +116,28 @@ def create_src():
     sentence_name = df['SENTENCE_NAME']
     sentence = df['SENTENCE']'''
 
+def join_dict(src, trg):
+    '''
+    Joins two dictionaries by their keys. The values of the source dictionary will
+    become the new keys and the values of the target dictionary will become the new
+    values
+
+    Parameters:
+        - src: the source dictionary
+        - trg: the target dictionary
+
+    Returns:
+    A dictionary { src.values(): trg.values() }
+    '''
+    joined_dict = {}
+
+    for key in src.keys():
+        if key in trg:
+            joined_dict[src[key]] = trg[key]
+        else:
+            print(f'Warning: Key '{key}' found in source but not in target')
+
 if __name__ == '__main__':
-    create_trg()
-    # create_src()
+    trg_dict = create_trg()
+    src_dict = create_src()
+    result_dict = join_dict(src_dict, trg_dict)
