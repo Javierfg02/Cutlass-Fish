@@ -104,9 +104,6 @@ def create_src():
             
             src_dictionary[sentence_name] = sentence
             
-    
-    # with open("../data/val/processed/sentence_name_to_sentence.json", "w") as outfile: 
-    #     json.dump(src_dictionary, outfile)
     # print(src_dictionary)
     return src_dictionary
 
