@@ -84,7 +84,7 @@ def create_trg():
         output[i] = np.stack(frames, axis=0)
     # concatenate all sequences from each file.
     #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
-    print(output) # TODO: Once we have the mapping from directory_name to frame data, we need to join this with the source file to
+    # print(output) # TODO: Once we have the mapping from directory_name to frame data, we need to join this with the source file to
     # TODO: to get a mapping of sentence to frame data
     return output
 
@@ -98,7 +98,6 @@ def create_src():
         # Iterate through each row in the CSV file
         for row in reader:
             split_row = row[0].split('\t')
-            print(split_row)
            
             sentence_name = split_row[3]
             sentence = split_row[6]
@@ -108,7 +107,7 @@ def create_src():
     
     # with open("../data/val/processed/sentence_name_to_sentence.json", "w") as outfile: 
     #     json.dump(src_dictionary, outfile)
-    print(src_dictionary)
+    # print(src_dictionary)
     return src_dictionary
 
     '''
@@ -135,9 +134,15 @@ def join_dict(src, trg):
         if key in trg:
             joined_dict[src[key]] = trg[key]
         else:
-            print(f'Warning: Key '{key}' found in source but not in target')
+            # print(f'Warning: Key {key} found in source but not in target')
+            pass
+
+    return joined_dict
 
 if __name__ == '__main__':
     trg_dict = create_trg()
     src_dict = create_src()
     result_dict = join_dict(src_dict, trg_dict)
+    print("Joined dictionary:")
+    for key, value in result_dict.items():
+        print(f"KEY: {key} \n VALUE: {value} \n")
