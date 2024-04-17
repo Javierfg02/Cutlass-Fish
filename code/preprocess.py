@@ -18,15 +18,21 @@ def create_trg():
     json_path =  RAW_DATA_PATH + '/openpose_output/json/'
     directories = os.listdir(json_path) # get all the directories
     # for each directory get all of its json files (these store the joints data for each frame)
-    for directory in directories:
-        directory_path = os.path.join(json_path, directory)
+    json_data = None
+    for i in directories:
+        directory_path = os.path.join(json_path, i)
         files = os.listdir(directory_path)
-        for file in sorted(files): # we need to maintain the sequence of frames so we sort files by name 
-            with open(directory_path, 'r') as file:
-                json_data = json.loads(file)
-                print(json_data)
-
-    # curr_file = json.loads() # load first file for now
+        # each json file stores the data for a frame
+        for j in sorted(files): # we need to maintain the sequence of frames so we sort files by name
+            if(j == sorted(files)[0]):
+                file_path = os.path.join(directory_path, j)
+                # open the file
+                with open(file_path, 'r') as file:
+                    json_file = file.read()
+                    json_data = json.loads(json_file)
+                    # json_data = json_data['people'][0]['pose_keypoints_2d']
+                    json_data = json_data['people']
+    print(json_data)
 
 def create_src():
     csv_path = RAW_DATA_PATH + "/how2sign_realigned_val.csv"
