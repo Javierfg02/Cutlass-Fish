@@ -64,7 +64,7 @@ class TransformerDecoder(Decoder):
                                                                    ff_size,num_heads,dropout,decoder_trg_trg_) for _ in range (layers)])
 
         self.pe = PositionalEncoding(hidden_size,mask_count=True)
-        self.layer_norm = tf.keras.layers.LayerNormalization()
+        self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         self.emb_dropout = tf.keras.layers.Dropout(emb_dropout)
 
         # Output layer to be the size of joints vector + 1 for counter (total is trg_size)

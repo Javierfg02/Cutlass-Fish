@@ -49,7 +49,7 @@ class MultiHeadedAttention(tf.keras.Model):
             sim_score = tf.where(~mask, sim_score, float('-inf'))
         
         attention = self.softmax(sim_score)
-        attention = self.droput(sim_score)
+        attention = self.dropout(sim_score)
 
         if padding_mask is not None:
             attention = tf.where(~padding_mask,0.0)
@@ -112,7 +112,7 @@ class PositionalEncoding(tf.Module):
         return emb + self.pe[:, :emb.size(1)]
 
 
-class TransformerEncoderLayer(nn.Module):
+class TransformerEncoderLayer(tf.Module):
 
     def __init__(self,
                  size: int = 0,
@@ -122,11 +122,11 @@ class TransformerEncoderLayer(nn.Module):
 
         super(TransformerEncoderLayer, self).__init__()
 
-        self.layer_norm = tf.keras.layers.LayerNormalization()
+        self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         self.src_src_att = MultiHeadedAttention(num_heads, size,
                                                 dropout=dropout)
         self.feed_forward = PositionwiseFeedForward(size, ff_size=ff_size)
-        self.dropout = tf.Dropout(dropout)
+        self.dropout = tf.keras.layers.Dropout(dropout)
         self.size = size
 
     # pylint: disable=arguments-differ
@@ -139,3 +139,68 @@ class TransformerEncoderLayer(nn.Module):
         h = self.dropout(h) + x
         o = self.feed_forward(h)
         return o
+    
+class TransformerDecoderLayer(tf.Module):
+
+    def __init__(self,
+                 size: int = 0,
+                 ff_size: int = 0,
+                 num_heads: int = 0,
+                 dropout: float = 0.1,
+                 decoder_trg_trg: bool = True):
+
+        super(TransformerDecoderLayer, self).__init__()
+        self.size = size
+
+        self.trg_trg_att = MultiHeadedAttention(num_heads, size,
+                                                dropout=dropout)
+
+        self.src_trg_att = MultiHeadedAttention(num_heads, size,
+                                                dropout=dropout)
+
+        self.feed_forward = PositionwiseFeedForward(size, ff_size=ff_size)
+
+        self.x_layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+        self.dec_layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+
+        self.dropout = tf.keras.layers.Dropout(dropout)
+
+        self.decoder_trg_trg = decoder_trg_trg
+
+    # pylint: disable=arguments-differ
+    def forward(self,
+                x,
+                memory,
+                src_mask,
+                trg_mask,
+                padding_mask):
+
+        # decoder/target self-attention
+        h1 = self.x_layer_norm(x)
+
+        # Target-Target Self Attention
+        if self.decoder_trg_trg:
+            h1 = self.trg_trg_att(h1, h1, h1, mask=trg_mask, padding_mask=padding_mask)
+        h1 = self.dropout(h1) + x
+
+        # Source-Target Self Attention
+        h1_norm = self.dec_layer_norm(h1)
+        h2 = self.src_trg_att(memory, memory, h1_norm, mask=src_mask)
+
+        # final position-wise feed-forward layer
+        o = self.feed_forward(self.dropout(h2) + h1)
+
+        return o
+
+
+
+
+
+
+
+
+
+
+
+    
+        
