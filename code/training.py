@@ -414,7 +414,7 @@ def test(cfg_file, ckpt=None):
     use_cuda = cfg["training"].get("use_cuda", False)
     eval_metric = cfg["training"]["eval_metric"]
     max_output_length = cfg["training"].get("max_output_length", None)
-    train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg)
+    train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg) #! Again, adapt for our data
     data_to_predict = {"test": test_data}
     model_checkpoint = load_checkpoint(ckpt, use_cuda=use_cuda)
     model = build_model(cfg, src_vocab=src_vocab, trg_vocab=trg_vocab)

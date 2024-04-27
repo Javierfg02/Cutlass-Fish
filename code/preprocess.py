@@ -131,9 +131,8 @@ def join_dict(src, trg):
         if key in trg:
             joined_dict[src[key]] = trg[key]
         else:
-            # print(f'Warning: Key {key} found in source but not in target')
-            pass
-
+            print(f'Warning: Key {key} found in source but not in target')
+        
     return joined_dict
 
 if __name__ == '__main__':
