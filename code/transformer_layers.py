@@ -3,7 +3,6 @@ import tensorflow as tf
 import numpy as np 
 
 
-
 class MultiHeadedAttention(tf.keras.Model):
 
     def __init__(self,num_heads,size,dropout):
@@ -23,7 +22,7 @@ class MultiHeadedAttention(tf.keras.Model):
         self.output = tf.keras.layers.Dense(size)
         self.softmax = tf.keras.layers.Softmax(dim=-1)
         self.dropout = tf.keras.layers.Dropout(dropout)
-        self.target_pad = TARGET_PAD
+        self.target_pad = 0.0
 
     @tf.function
     def call(self,k,v,q,mask= None,padding_mask = None):
@@ -82,18 +81,3 @@ class PositionwiseFeedForward(tf.keras.Model):
     def call(self,attention_output):
         norm = self.norm(attention_output)
         return self.ff_layer(norm) + attention_output
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-        
