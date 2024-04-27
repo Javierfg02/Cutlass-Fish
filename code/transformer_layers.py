@@ -81,3 +81,61 @@ class PositionwiseFeedForward(tf.keras.Model):
     def call(self,attention_output):
         norm = self.norm(attention_output)
         return self.ff_layer(norm) + attention_output
+
+
+# pylint: disable=arguments-differ
+class PositionalEncoding(tf.Module):
+
+    def __init__(self,
+                 size: int = 0,
+                 max_len: int = 200000, # Max length was too small for the required length
+                 mask_count=False):
+
+        if size % 2 != 0:
+            raise ValueError("Cannot use sin/cos positional encoding with "
+                             "odd dim (got dim={:d})".format(size))
+        pe = tf.zeros(max_len, size)
+        position = tf.range(0, max_len).unsqueeze(1)
+        div_term = tf.exp((tf.range(0, size, 2, dtype=tf.float32) *
+                              -(math.log(10000.0) / size)))
+        pe[:, 0::2] = tf.sin(position.float() * div_term)
+        pe[:, 1::2] = tf.cos(position.float() * div_term)
+        pe = pe.unsqueeze(0)  # shape: [1, size, max_len]
+
+        super(PositionalEncoding, self).__init__()
+        self.register_buffer('pe', pe)
+        self.dim = size
+        self.mask_count = mask_count
+
+    def forward(self, emb):
+
+        return emb + self.pe[:, :emb.size(1)]
+
+
+class TransformerEncoderLayer(nn.Module):
+
+    def __init__(self,
+                 size: int = 0,
+                 ff_size: int = 0,
+                 num_heads: int = 0,
+                 dropout: float = 0.1):
+
+        super(TransformerEncoderLayer, self).__init__()
+
+        self.layer_norm = tf.keras.layers.LayerNormalization()
+        self.src_src_att = MultiHeadedAttention(num_heads, size,
+                                                dropout=dropout)
+        self.feed_forward = PositionwiseFeedForward(size, ff_size=ff_size)
+        self.dropout = tf.Dropout(dropout)
+        self.size = size
+
+    # pylint: disable=arguments-differ
+    def forward(self, x, mask):
+
+        x_norm = self.layer_norm(x)
+
+        h = self.src_src_att(x_norm, x_norm, x_norm, mask=mask)
+
+        h = self.dropout(h) + x
+        o = self.feed_forward(h)
+        return o
