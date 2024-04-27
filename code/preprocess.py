@@ -104,9 +104,6 @@ def create_src():
             
             src_dictionary[sentence_name] = sentence
             
-    
-    # with open("../data/val/processed/sentence_name_to_sentence.json", "w") as outfile: 
-    #     json.dump(src_dictionary, outfile)
     # print(src_dictionary)
     return src_dictionary
 
@@ -134,9 +131,8 @@ def join_dict(src, trg):
         if key in trg:
             joined_dict[src[key]] = trg[key]
         else:
-            # print(f'Warning: Key {key} found in source but not in target')
-            pass
-
+            print(f'Warning: Key {key} found in source but not in target')
+        
     return joined_dict
 
 if __name__ == '__main__':
