@@ -1,44 +1,40 @@
-import math
 import tensorflow as tf
-from helpers import freeze_params
 
-
-class MaskedNorm(nn.Module):
+class MaskedNorm(tf.keras.layers.Layer):
     """
         Original Code from:
         https://discuss.pytorch.org/t/batchnorm-for-different-sized-samples-in-batch/44251/8
     """
 
     def __init__(self, norm_type, num_groups, num_features):
-        super().__init__()
+        super(MaskedNorm, self).__init__()
         self.norm_type = norm_type
         if self.norm_type == "batch":
-            self.norm = tf.keras.layers.BatchNormalization(axis=-1, epsilon=1e-5, momentum=0.9)
+            self.norm = tf.keras.layers.BatchNormalization(axis=-1)
         elif self.norm_type == "group":
-            self.norm = tf.keras.layers.GroupNormalization(groups=num_groups)
+            self.norm = tf.keras.layers.LayerNormalization(axis=-1)
         elif self.norm_type == "layer":
-            self.norm = tf.keras.layers.LayerNormalization(normalized_shape=num_features)
+            self.norm = tf.keras.layers.LayerNormalization(axis=-1)
         else:
             raise ValueError("Unsupported Normalization Layer")
 
         self.num_features = num_features
 
-    def forward(self, x, mask):
+    def call(self, x, mask):
         if self.training:
-            reshaped = x.reshape([-1, self.num_features])
-            reshaped_mask = mask.reshape([-1, 1]) > 0
-            selected = torch.masked_select(reshaped, reshaped_mask).reshape(
-                [-1, self.num_features]
-            )
+            reshaped = tf.reshape(x, [-1, self.num_features])
+            reshaped_mask = tf.reshape(mask, [-1, 1]) > 0
+            selected = tf.boolean_mask(reshaped, reshaped_mask)
+            selected = tf.reshape(selected, [-1, self.num_features])
             batch_normed = self.norm(selected)
-            scattered = reshaped.masked_scatter(reshaped_mask, batch_normed)
-            return scattered.reshape([x.shape[0], -1, self.num_features])
+            scattered = tf.where(reshaped_mask, batch_normed, reshaped)
+            return tf.reshape(scattered, [tf.shape(x)[0], -1, self.num_features])
         else:
-            reshaped = x.reshape([-1, self.num_features])
+            reshaped = tf.reshape(x, [-1, self.num_features])
             batched_normed = self.norm(reshaped)
-            return batched_normed.reshape([x.shape[0], -1, self.num_features])
+            return tf.reshape(batched_normed, [tf.shape(x)[0], -1, self.num_features])
 
-class Embeddings(nn.Module):
+class Embeddings(tf.keras.layers.Layer):
 
     """
     Simple embeddings class
@@ -46,11 +42,11 @@ class Embeddings(nn.Module):
 
     # pylint: disable=unused-argument
     def __init__(self,
-                 embedding_dim: int = 64,
-                 scale: bool = False,
-                 vocab_size: int = 0,
-                 padding_idx: int = 1,
-                 freeze: bool = False,
+                 embedding_dim=64,
+                 scale=False,
+                 vocab_size=0,
+                 padding_idx=1,
+                 freeze=False,
                  **kwargs):
         """
         Create new embeddings for the vocabulary.
@@ -67,14 +63,14 @@ class Embeddings(nn.Module):
         self.embedding_dim = embedding_dim
         self.scale = scale
         self.vocab_size = vocab_size
-        self.lut = nn.Embedding(vocab_size, self.embedding_dim,
-                                padding_idx=padding_idx)
+        self.lut = tf.keras.layers.Embedding(vocab_size, embedding_dim,
+                                             mask_zero=True, input_length=None)
 
         if freeze:
-            freeze_params(self)
+            self.lut.trainable = False
 
     # pylint: disable=arguments-differ
-    def forward(self, x: Tensor) -> Tensor:
+    def call(self, x):
         """
         Perform lookup for input `x` in the embedding table.
 
@@ -82,7 +78,7 @@ class Embeddings(nn.Module):
         :return: embedded representation for `x`
         """
         if self.scale:
-            return self.lut(x) * math.sqrt(self.embedding_dim)
+            return self.lut(x) * tf.sqrt(float(self.embedding_dim))
         return self.lut(x)
 
     def __repr__(self):

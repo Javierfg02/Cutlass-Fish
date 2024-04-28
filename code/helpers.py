@@ -84,6 +84,7 @@ def log_cfg(cfg: dict, logger: Logger, prefix: str = "cfg") -> None:
             p = '.'.join([prefix, k])
             logger.info("{:34s} : {}".format(p, v))
 
+# TODO: MISSING CLONES, subsequent_mask, uneven_subsequent_mask
 def set_seed(seed: int) -> None:
     """
     Set the random seed for modules tensorflow, numpy and random.
