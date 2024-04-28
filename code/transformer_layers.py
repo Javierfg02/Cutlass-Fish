@@ -112,7 +112,7 @@ class PositionalEncoding(tf.Module):
         return emb + self.pe[:, :emb.size(1)]
 
 
-class TransformerEncoderLayer(tf.Module):
+class TransformerEncoderLayer(tf.keras.Model):
 
     def __init__(self,
                  size: int = 0,
@@ -140,7 +140,7 @@ class TransformerEncoderLayer(tf.Module):
         o = self.feed_forward(h)
         return o
     
-class TransformerDecoderLayer(tf.Module):
+class TransformerDecoderLayer(tf.keras.Model):
 
     def __init__(self,
                  size: int = 0,

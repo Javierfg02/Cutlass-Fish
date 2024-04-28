@@ -6,7 +6,7 @@ from helpers import freeze_params, ConfigurationError, subsequent_mask, uneven_s
 from transformer_layers import PositionalEncoding, \
     TransformerDecoderLayer
 
-class Decoder(tf.Module):
+class Decoder(tf.keras.Model):
     """
     Base decoder class
     """
