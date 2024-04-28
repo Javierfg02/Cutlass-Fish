@@ -1,4 +1,6 @@
 import tensorflow as tf
+from transformer_layers import \
+    TransformerEncoderLayer, PositionalEncoding
 
 
 class TransformerEncoder(tf.keras.Model):
