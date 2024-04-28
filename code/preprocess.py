@@ -39,7 +39,7 @@ def min_max_normalize(arr):
     max_val = np.max(arr)
     return (arr - min_val) / (max_val - min_val) if max_val > min_val else arr
 
-def pos1_neg1_normalize(arr, ):
+def pos1_neg1_normalize(arr):
     arr = np.array(arr, dtype=np.float64) 
     min_val = np.min(arr)
     max_val = np.max(arr)
@@ -79,13 +79,18 @@ def create_trg():
                 concat_kp = np.concatenate((pose_kp, face_kp, hand_left_kp, hand_right_kp))
                 frames.append(concat_kp)
 
-        # create a dictionary mapping directory_name (sentence_ID) to a 2D array where each row is a frame
-        #? Do we want each row to be a frame? if we want, then stack as follows
-        output[i] = np.stack(frames, axis=0)
-    # concatenate all sequences from each file.
-    #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
-    # print(output) # TODO: Once we have the mapping from directory_name to frame data, we need to join this with the source file to
-    # TODO: to get a mapping of sentence to frame data
+        if frames:  # Only process non-empty frame lists
+            # Convert frame list to a stacked numpy array, then to a TensorFlow tensor
+            frames_tensor = tf.convert_to_tensor(np.stack(frames, axis=0), dtype=tf.float32)
+            output[i] = frames_tensor
+
+    #     # create a dictionary mapping directory_name (sentence_ID) to a 2D array where each row is a frame
+    #     #? Do we want each row to be a frame? if we want, then stack as follows
+    #     output[i] = np.stack(frames, axis=0)
+    # # concatenate all sequences from each file.
+    # #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
+    # # print(output) # TODO: Once we have the mapping from directory_name to frame data, we need to join this with the source file to
+    # # TODO: to get a mapping of sentence to frame data
     return output
 
 def create_src():
@@ -112,7 +117,7 @@ def create_src():
     sentence_name = df['SENTENCE_NAME']
     sentence = df['SENTENCE']'''
 
-def join_dict(src, trg):
+def join_dict(src, trg): #! Deprecated
     '''
     Joins two dictionaries by their keys. The values of the source dictionary will
     become the new keys and the values of the target dictionary will become the new
@@ -131,14 +136,53 @@ def join_dict(src, trg):
         if key in trg:
             joined_dict[src[key]] = trg[key]
         else:
-            print(f'Warning: Key {key} found in source but not in target')
-        
+            pass
+            # print(f'Warning: Key {key} found in source but not in target')
+
     return joined_dict
 
-if __name__ == '__main__':
-    trg_dict = create_trg()
+class Example:
+    def __init__(self, src, trg, file_path=None):
+        self.src = src
+        self.trg = trg
+        self.file_path = file_path
+
+def create_examples(src, trg):
+    """
+    Create a list of Example objects from source and target dictionaries
+    
+    Parameters:
+        src: the source setnence
+        trg: the target frame data
+
+    Returns:
+        A list of example objects
+    """
+
+    examples = []
+    for key in src.keys():
+        if key in trg:
+            example = Example(
+                src=src[key].split(),
+                trg=trg[key],
+                file_path=key
+            )
+            examples.append(example)
+        else:
+            # print(f'Warning: Key {key} found in source but not in target')
+            pass
+    return examples
+
+def main():
+    trg_dict = create_trg() # shape = (201, 411) -> (num frames, data points per frame)
     src_dict = create_src()
-    result_dict = join_dict(src_dict, trg_dict)
-    print("Joined dictionary:")
-    for key, value in result_dict.items():
-        print(f"KEY: {key} \n VALUE: {value} \n")
+    examples = create_examples(src_dict, trg_dict)
+    
+    for example in examples[:5]:  # print the first 5 examples
+        print(f"Source: {example.src}")
+        print(f"Target: {example.trg}")
+        print(f"Target type: {type(example.trg)}")
+        print(f"File Path: {example.file_path}\n")
+
+if __name__ == '__main__':
+    main()
