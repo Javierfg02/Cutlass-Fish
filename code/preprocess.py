@@ -73,14 +73,14 @@ def create_trg():
                 json_data = json.loads(json_file)
                 # concatenate all keypoints
                 # TODO: try different normalization functions
-                pose_kp = (np.array(json_data['people'][0]['pose_keypoints_2d']))
-                hand_left_kp = (np.array(json_data['people'][0]['hand_left_keypoints_2d']))
-                hand_right_kp = (np.array(json_data['people'][0]['hand_right_keypoints_2d']))
-                face_kp = (np.array(json_data['people'][0]['face_keypoints_2d']))
+                pose_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['pose_keypoints_2d']))
+                hand_left_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['hand_left_keypoints_2d']))
+                hand_right_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['hand_right_keypoints_2d']))
+                face_kp = pos1_neg1_normalize(np.array(json_data['people'][0]['face_keypoints_2d']))
                 
                 concat_kp = np.concatenate((pose_kp, face_kp, hand_left_kp, hand_right_kp))
 
-                # add a counter to delimit the ending of the sentence
+                #? Add a counter to delimit the ending of the sentence - ! Counter decoding technique
                 normalized_counter = j / (total_frames - 1)  # Normalize the counter to be between 0 and 1, adjust for zero indexing
                 frame_with_counter = np.append(concat_kp, normalized_counter)  # Append the normalized counter
                 frames.append(frame_with_counter)
@@ -90,11 +90,7 @@ def create_trg():
             frames_tensor = tf.convert_to_tensor(np.stack(frames, axis=0), dtype=tf.float32)
             output[i] = frames_tensor
 
-    #     # create a dictionary mapping directory_name (sentence_ID) to a 2D array where each row is a frame
-    #     #? Do we want each row to be a frame? if we want, then stack as follows
-    #     output[i] = np.stack(frames, axis=0)
-    # # concatenate all sequences from each file.
-    # #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
+    #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
     return output
 
 def create_src():
@@ -114,11 +110,6 @@ def create_src():
             src_dictionary[sentence_name] = sentence
             
     return src_dictionary
-
-    '''
-    # Access a specific column by its name
-    sentence_name = df['SENTENCE_NAME']
-    sentence = df['SENTENCE']'''
 
 def join_dict(src, trg): #! Deprecated
     '''
@@ -181,15 +172,21 @@ def test():
     src_dict = create_src()
     examples = create_examples(src_dict, trg_dict)
 
-    assert examples[0].trg.shape[1] == 412 # with counter
-    
-    for example in examples[:5]:  # print the first 5 examples
+    for example in examples[:5]:  # Check the first 5 examples
+        counters = example.trg.numpy()[:, -1]  # Extract counter values from the last column
+        # print(f"Counters for {example.file_path}: {counters}")
+
+        # Assert the counters start at 0 and end at 1, and they are monotonically increasing
+        assert counters[0] == 0, "Counter does not start at 0."
+        assert counters[-1] == 1, "Counter does not end at 1."
+        assert np.all(np.diff(counters) > 0), "Counters are not monotonically increasing." # we take the difference between consecutive
+        # counters and if it is negative then they are not monotonically increasing
+
+        # Print the first 5 frames' info for a quick check
         print(f"Source: {example.src}")
-        # print(f"Target: {example.trg}")
         print(f"Target shape: {example.trg.shape}")
         print(f"Target type: {type(example.trg)}")
         print(f"File Path: {example.file_path}\n")
-
 
 def main():
     test()
