@@ -62,9 +62,11 @@ def create_trg():
             continue
         # each json file stores the data for a frame
         frames = []
-        for j in sorted(files): # we need to maintain the sequence of frames so we sort files by name
+        total_frames = len(files)
+        print(f"TOTAL FRAMES: {total_frames}")
+        for j, file_name in enumerate(sorted(files)): # we need to maintain the sequence of frames so we sort files by name
 
-            file_path = os.path.join(directory_path, j)
+            file_path = os.path.join(directory_path, file_name)
             # open the file
             with open(file_path, 'r') as file:
                 json_file = file.read()
@@ -77,7 +79,11 @@ def create_trg():
                 face_kp = (np.array(json_data['people'][0]['face_keypoints_2d']))
                 
                 concat_kp = np.concatenate((pose_kp, face_kp, hand_left_kp, hand_right_kp))
-                frames.append(concat_kp)
+
+                # add a counter to delimit the ending of the sentence
+                normalized_counter = j / (total_frames - 1)  # Normalize the counter to be between 0 and 1, adjust for zero indexing
+                frame_with_counter = np.append(concat_kp, normalized_counter)  # Append the normalized counter
+                frames.append(frame_with_counter)
 
         if frames:  # Only process non-empty frame lists
             # Convert frame list to a stacked numpy array, then to a TensorFlow tensor
@@ -89,8 +95,6 @@ def create_trg():
     #     output[i] = np.stack(frames, axis=0)
     # # concatenate all sequences from each file.
     # #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
-    # # print(output) # TODO: Once we have the mapping from directory_name to frame data, we need to join this with the source file to
-    # # TODO: to get a mapping of sentence to frame data
     return output
 
 def create_src():
@@ -109,7 +113,6 @@ def create_src():
             
             src_dictionary[sentence_name] = sentence
             
-    # print(src_dictionary)
     return src_dictionary
 
     '''
@@ -136,8 +139,8 @@ def join_dict(src, trg): #! Deprecated
         if key in trg:
             joined_dict[src[key]] = trg[key]
         else:
-            pass
             # print(f'Warning: Key {key} found in source but not in target')
+            pass
 
     return joined_dict
 
@@ -163,7 +166,7 @@ def create_examples(src, trg):
     for key in src.keys():
         if key in trg:
             example = Example(
-                src=src[key].split(),
+                src=src[key].split(), # tokenize
                 trg=trg[key],
                 file_path=key
             )
@@ -173,16 +176,23 @@ def create_examples(src, trg):
             pass
     return examples
 
-def main():
-    trg_dict = create_trg() # shape = (201, 411) -> (num frames, data points per frame)
+def test():
+    trg_dict = create_trg() # shape = (201, 411 + counter) -> (num frames, data points per frame + counter)
     src_dict = create_src()
     examples = create_examples(src_dict, trg_dict)
+
+    assert examples[0].trg.shape[1] == 412 # with counter
     
     for example in examples[:5]:  # print the first 5 examples
         print(f"Source: {example.src}")
-        print(f"Target: {example.trg}")
+        # print(f"Target: {example.trg}")
+        print(f"Target shape: {example.trg.shape}")
         print(f"Target type: {type(example.trg)}")
         print(f"File Path: {example.file_path}\n")
+
+
+def main():
+    test()
 
 if __name__ == '__main__':
     main()

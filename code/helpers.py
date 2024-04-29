@@ -17,7 +17,7 @@ import tensorflow as tf
 
 import yaml
 
-from dtw import dtw # TODO
+from dtw import dtw 
 
 class ConfigurationError(Exception):
     """ Custom exception for misspecifications of configuration """
@@ -115,6 +115,7 @@ def bpe_postprocess(string) -> str:
     """
     return string.replace("@@ ", "")
 
+# TODO: This is an optimization, we don't need this for our model
 def get_latest_checkpoint(ckpt_dir, post_fix="_every" ) -> Optional[str]:
     """
     Returns the latest checkpoint (by time) from the given directory, of either every validation step or best
@@ -131,6 +132,7 @@ def get_latest_checkpoint(ckpt_dir, post_fix="_every" ) -> Optional[str]:
         latest_checkpoint = max(list_of_files, key=os.path.getctime)
     return latest_checkpoint
 
+# TODO: This is an optimization, we don't need this for our model
 def load_checkpoint(path: str, use_cuda: bool = True) -> dict:
     """
     Load model from saved checkpoint.

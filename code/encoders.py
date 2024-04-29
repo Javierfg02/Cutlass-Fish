@@ -1,16 +1,15 @@
 import tensorflow as tf
 from transformer_layers import \
     TransformerEncoderLayer, PositionalEncoding
+from helpers import freeze_params
 
 
 class TransformerEncoder(tf.keras.Model):
-
     """
     Encoder class 
     """
 
     def __init__(self,hidden_size,ff_size,layers,heads,dropout,emb_dropout,freeze,**kwargs):
-
         """
         Initializes the Encoder .
         :param hidden_size: hidden size and size of embeddings

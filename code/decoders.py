@@ -59,9 +59,9 @@ class TransformerDecoder(Decoder):
         self._output_size = trg_size
 
         # create num_layers decoder layers and put them in a list
-        
+    
         self.layers = tf.keras.Sequential([TransformerDecoderLayer(hidden_size,
-                                                                   ff_size,num_heads,dropout,decoder_trg_trg_) for _ in range (layers)])
+                                                                   ff_size,num_heads,dropout,decoder_trg_trg_) for _ in range (num_layers)])
 
         self.pe = PositionalEncoding(hidden_size,mask_count=True)
         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)

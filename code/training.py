@@ -7,8 +7,6 @@ import numpy as np
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, models, optimizers
-from tensorflow.keras import backend as K
 
 from model import build_model  # This should now return a TensorFlow Keras model
 from batch import Batch  # This needs to be adapted for TensorFlow's data handling
