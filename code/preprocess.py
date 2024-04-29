@@ -117,27 +117,47 @@ def create_src():
             
     return src_dictionary
 
-def make_data_iter(examples, batch_size, shuffle=True, train=True):
-    # Convert list of Examples into proper TensorFlow datasets.
-    # Assuming `examples` is a list of Example objects with attributes 'src' and 'trg'
+def make_data_iter(examples, batch_size, pad_token_id, shuffle=True, train=True, sort_within_batch=True):
+    """
+    Create a TensorFlow data iterator that better replicates the PyTorch BucketIterator functionality.
+    
+    Args:
+        examples (list): List of Example objects with attributes 'src' and 'trg'.
+        batch_size (int): The size of batches to return.
+        pad_token_id (int): Token id used for padding variable-length sequences.
+        shuffle (bool): Whether to shuffle the data each epoch.
+        train (bool): Whether the iterator is used for training (affects repetition and shuffling).
+        sort_within_batch (bool): Whether to sort data within each batch by sequence length (mimics PyTorch's BucketIterator).
+
+    Returns:
+        tf.data.Dataset: A TensorFlow Dataset yielding batches of data.
+    """
+
+    # Extract sequences and targets from examples
     src_dataset = tf.data.Dataset.from_tensor_slices([ex.src for ex in examples])
     trg_dataset = tf.data.Dataset.from_tensor_slices([ex.trg for ex in examples])
-    
+
     # Combine source and target datasets
     dataset = tf.data.Dataset.zip((src_dataset, trg_dataset))
-    
+
+    # Optionally sort dataset globally by sequence length
+    if sort_within_batch:
+        dataset = dataset.sort(lambda x, y: tf.shape(x)[0])
+
     if shuffle:
-        # Shuffle data
-        dataset = dataset.shuffle(buffer_size=10000)
-    
-    # Batch the data
-    dataset = dataset.batch(batch_size, drop_remainder=True) #? Should we drop_remainder to maintain equal batch_sizes?
-    #? A more complex iteration function is needed in order to make the batch_size variable according to sentence length as in the paperx
-    
+        dataset = dataset.shuffle(buffer_size=len(examples))
+
+    # Use padded_batch to handle variable-length sequences
+    dataset = dataset.padded_batch(
+        batch_size,
+        padded_shapes=([None], [None, None]),
+        padding_values=(pad_token_id, 0),
+        drop_remainder=True
+    )
+
     if train:
-        # Repeat the dataset if in training mode
-        dataset = dataset.repeat()
-    
+        dataset = dataset.repeat()  # Repeat the dataset indefinitely for training
+
     return dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 class Example:
@@ -190,9 +210,9 @@ def test():
 
         # Print the first 5 frames' info for a quick check
         print(f"Source: {example.src}\n")
-        print(f"Target: {example.trg}\n")
+        # print(f"Target: {example.trg}\n")
         print(f"Target shape: {example.trg.shape}\n")
-        print(f"Target type: {type(example.trg)}\n")
+        # print(f"Target type: {type(example.trg)}\n")
         print(f"File Path: {example.file_path}\n")
 
 def main():
