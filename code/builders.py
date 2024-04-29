@@ -1,7 +1,7 @@
 import tensorflow as tf
-from tensorflow.keras.optimizers.schedules import PolynomialDecay, \
-    ExponentialDecay
-from tensorflow.keras.optimizers import Optimizer
+# from tensorflow.keras.optimizers.schedules import PolynomialDecay, \
+#     ExponentialDecay
+from tensorflow import Optimizer
 from helpers import ConfigurationError
 
 def build_gradient_clipper(config):

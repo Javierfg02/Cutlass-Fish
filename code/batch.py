@@ -2,8 +2,9 @@ import tensorflow as tf
 from constants import TARGET_PAD
 
 class Batch:
-    """Object for holding a batch of data with mask during training.
-    Input is a batch from a torch text iterator.
+    """
+    Object for holding a batch of data with mask during training.
+    Input is a batch from text iterator.
     """
 
     def __init__(self, torch_batch, pad_index, model):

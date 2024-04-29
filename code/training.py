@@ -14,7 +14,8 @@ from helpers import load_config, log_cfg, load_checkpoint, make_model_dir, \
     make_logger, set_seed, symlink_update, ConfigurationError, get_latest_checkpoint
 from prediction import validate_on_data  # Must be adapted for TensorFlow
 from loss import RegLoss, XentLoss  # Must be implemented using tf.keras.losses
-from data import load_data, make_data_iter  # Adapt these for TensorFlow datasets # TODO: Adapt this to fit our data
+from preprocess import create_src, create_trg, create_examples
+from vocabulary import Vocabulary as vocab
 from builders import build_optimizer, build_scheduler, build_gradient_clipper
 from plot_videos import plot_video, alter_DTW_timing
 
@@ -160,6 +161,7 @@ class TrainManager:
             self.model = self.model.cuda()  # Adapt this for TensorFlow GPU settings
 
     def train_and_validate(self, train_data, valid_data):
+        #! Figure out make_data_iter
         train_iter = make_data_iter(train_data, batch_size=self.batch_size, batch_type=self.batch_type, train=True, shuffle=self.shuffle)
         val_step = 0
         if self.gaussian_noise:
@@ -385,8 +387,14 @@ class TrainManager:
 def train(cfg_file, ckpt=None):
     cfg = load_config(cfg_file)
     set_seed(seed=cfg["training"].get("random_seed", 42))
-    train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg) #! Important for the data processing
-    model = build_model(cfg, src_vocab=src_vocab, trg_vocab=trg_vocab) #! seems as if we need two vocabs, source and target and various data files (train and val)
+    # train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg) #! Important for the data processing
+    trg = create_trg()
+    src = create_src()
+    train_data = create_examples(src, trg)
+    dev_data = create_examples(src, trg)
+    src_vocab = vocab._from_file('../configs/src_vocab')
+    trg_vocab = [None] * len(src_vocab)
+    model = build_model(cfg, src_vocab=src_vocab, trg_vocab=trg_vocab)
 
     if ckpt is not None:
         use_cuda = cfg["training"].get("use_cuda", False)
@@ -412,7 +420,7 @@ def test(cfg_file, ckpt=None):
     use_cuda = cfg["training"].get("use_cuda", False)
     eval_metric = cfg["training"]["eval_metric"]
     max_output_length = cfg["training"].get("max_output_length", None)
-    train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg) #! Again, adapt for our data
+    # train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg) #! Again, adapt for our data
     data_to_predict = {"test": test_data}
     model_checkpoint = load_checkpoint(ckpt, use_cuda=use_cuda)
     model = build_model(cfg, src_vocab=src_vocab, trg_vocab=trg_vocab)
