@@ -165,12 +165,12 @@ if __name__ == "__main__":
     sentences = vocab.get_sentences()
     vocab.build_vocab(sentences)
     # generate the file
-    vocab.to_file("../configs/src_vocab.txt")
+    # vocab.to_file("../configs/src_vocab.txt")
 
     print("Index of 'UNK':", vocab.stoi['<unk>'])
     print("Word for index 0:", vocab.itos[0])
     print("Index of 'this':", vocab.stoi['this'])
-    print("Word for index 19:", vocab.itos[19])
+    print("Word for index 19:", vocab.itos[16])
     print("Vocabulary Size:", len(vocab))
     # print("Vocabulary itos:", vocab.itos) # Works - returns a vocabulary
     # print("Vocabulary stoi:", vocab.stoi) # Works - shows each word mapped to an index
