@@ -5,14 +5,19 @@ import json
 import numpy as np
 import tensorflow as tf
 import pandas as pd
+import re
 
-# TODO: Join json files for each sentence
-# TODO: Investigate, are the joint values different in each frame??
-# TODO: Add counter after each n joint values (n is the number of joint values per frame)
-# TODO: Make src and vocab
-# TODO: Make target
 
 RAW_DATA_PATH = '../data/val/raw'
+
+def tokenize(text):
+    """ 
+    Use regex to separate words from punctuation and tokenize the text. 
+    same method used in vocabulary
+    """
+    # Pattern to find words or punctuation
+    pattern = re.compile(r"[\w']+|[.,!?;]")
+    return pattern.findall(text)
 
 def z_normalize(arr: np.ndarray) -> np.ndarray:
     '''
@@ -156,8 +161,9 @@ def create_examples(src, trg):
     examples = []
     for key in src.keys():
         if key in trg:
+            tokens = tokenize(src[key])
             example = Example(
-                src=src[key].split(), # tokenize
+                src=tokens,
                 trg=trg[key],
                 file_path=key
             )
@@ -184,14 +190,13 @@ def test():
 
         # Print the first 5 frames' info for a quick check
         print(f"Source: {example.src}\n")
-        # print(f"Target: {example.trg}\n")
+        print(f"Target: {example.trg}\n")
         print(f"Target shape: {example.trg.shape}\n")
-        # print(f"Target type: {type(example.trg)}\n")
+        print(f"Target type: {type(example.trg)}\n")
         print(f"File Path: {example.file_path}\n")
 
 def main():
     test()
-    print()
 
 if __name__ == '__main__':
     main()
