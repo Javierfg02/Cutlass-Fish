@@ -16,6 +16,7 @@ def tokenize(text):
     same method used in vocabulary
     """
     # Pattern to find words or punctuation
+    text = text.lower() 
     pattern = re.compile(r"[\w']+|[.,!?;]")
     return pattern.findall(text)
 
