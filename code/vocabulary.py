@@ -52,7 +52,7 @@ class Vocabulary:
         tokens = []
         with open(file, "r") as f:
             tokens = [line.strip() for line in f]
-        self.from_list(tokens)
+        self._from_list(tokens)
 
     def __str__(self) -> str:
         return self.stoi.__str__()
@@ -134,7 +134,7 @@ class Vocabulary:
             return pattern.findall(text)
 
 
-    def build_vocab(self, samples: List[str], max_size: int = 10000, min_freq: int = 1):
+    def build_vocab(self, sentences: List[str], max_size: int = 10000, min_freq: int = 1):
         """
         Builds vocabulary from a list of sentences. 
         """
@@ -161,16 +161,25 @@ class Vocabulary:
         return sentences
 
 if __name__ == "__main__":
+
     vocab = Vocabulary()
-    sentences = vocab.get_sentences()
-    vocab.build_vocab(sentences)
-    # generate the file
+
+    # # get the sentences and build the vocabulary - works
+    # sentences = vocab.get_sentences()
+    # vocab.build_vocab(sentences)
+
+    # # generate the file - works
     # vocab.to_file("../configs/src_vocab.txt")
 
-    print("Index of 'UNK':", vocab.stoi['<unk>'])
-    print("Word for index 0:", vocab.itos[0])
-    print("Index of 'this':", vocab.stoi['this'])
-    print("Word for index 19:", vocab.itos[16])
-    print("Vocabulary Size:", len(vocab))
+    # # simple tests - works
+    # print("Index of '<unk>':", vocab.stoi['<unk>'])
+    # print("Word for index 0:", vocab.itos[0])
+    # print("Index of 'this':", vocab.stoi['this'])
+    # print("Word for index 19:", vocab.itos[16])
+    # print("Vocabulary Size:", len(vocab))
     # print("Vocabulary itos:", vocab.itos) # Works - returns a vocabulary
     # print("Vocabulary stoi:", vocab.stoi) # Works - shows each word mapped to an index
+
+    # # test from_file works as expected - works
+    # from_file = vocab._from_file('../configs/src_vocab.txt')
+    # print(len(vocab.stoi))
