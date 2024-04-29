@@ -9,7 +9,7 @@ data:
 
     max_sent_length: 300 # Max Sentence Length
     skip_frames: 1   # Skip frames in the data, to reduce the data input size
-    src_vocab: "./Configs/src_vocab.txt"
+    src_vocab: "./configs/src_vocab.txt"
 
 training:
     random_seed: 27   # Random seed for initialisation
@@ -40,7 +40,7 @@ model:
     initializer: "xavier" # Model initialisation (Xavier, ...)
     bias_initializer: "zeros"  # Bias initialiser (Zeros, ...)
     embed_initializer: "xavier" # Embedding initialiser (Xavier, ...)
-    trg_size: 411  # Size of target skeleton coordinates (411 for Inverse Kinematics body/hands)
+    trg_size: 412  # Size of target skeleton coordinates (412 for Inverse Kinematics body/hands)
     just_count_in: False # Flag for Just Counter Data Augmentation
     gaussian_noise: False # Flag for Gaussian Noise Data Augmentation
     noise_rate: 5 # Gaussian Noise rate

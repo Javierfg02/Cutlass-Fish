@@ -183,13 +183,15 @@ def test():
         # counters and if it is negative then they are not monotonically increasing
 
         # Print the first 5 frames' info for a quick check
-        print(f"Source: {example.src}")
-        print(f"Target shape: {example.trg.shape}")
-        print(f"Target type: {type(example.trg)}")
+        print(f"Source: {example.src}\n")
+        # print(f"Target: {example.trg}\n")
+        print(f"Target shape: {example.trg.shape}\n")
+        # print(f"Target type: {type(example.trg)}\n")
         print(f"File Path: {example.file_path}\n")
 
 def main():
     test()
+    print()
 
 if __name__ == '__main__':
     main()

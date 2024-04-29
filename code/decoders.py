@@ -72,7 +72,7 @@ class TransformerDecoder(Decoder):
         if freeze:
             freeze_params(self)
 
-    def forward(self,trg_embed, encoder_output, src_mask, trg_mask,
+    def call(self,trg_embed, encoder_output, src_mask, trg_mask,
                 **kwargs):
         """
         Transformer decoder forward pass.

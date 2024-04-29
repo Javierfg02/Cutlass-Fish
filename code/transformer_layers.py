@@ -129,8 +129,7 @@ class TransformerEncoderLayer(tf.keras.Model):
         self.dropout = tf.keras.layers.Dropout(dropout)
         self.size = size
 
-    # pylint: disable=arguments-differ
-    def forward(self, x, mask):
+    def call(self, x, mask):
 
         x_norm = self.layer_norm(x)
 
@@ -167,8 +166,7 @@ class TransformerDecoderLayer(tf.keras.Model):
 
         self.decoder_trg_trg = decoder_trg_trg
 
-    # pylint: disable=arguments-differ
-    def forward(self,
+    def call(self,
                 x,
                 memory,
                 src_mask,
