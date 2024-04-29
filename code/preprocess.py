@@ -117,29 +117,28 @@ def create_src():
             
     return src_dictionary
 
-def join_dict(src, trg): #! Deprecated
-    '''
-    Joins two dictionaries by their keys. The values of the source dictionary will
-    become the new keys and the values of the target dictionary will become the new
-    values
-
-    Parameters:
-        - src: the source dictionary
-        - trg: the target dictionary
-
-    Returns:
-    A dictionary { src.values(): trg.values() }
-    '''
-    joined_dict = {}
-
-    for key in src.keys():
-        if key in trg:
-            joined_dict[src[key]] = trg[key]
-        else:
-            # print(f'Warning: Key {key} found in source but not in target')
-            pass
-
-    return joined_dict
+def make_data_iter(examples, batch_size, shuffle=True, train=True):
+    # Convert list of Examples into proper TensorFlow datasets.
+    # Assuming `examples` is a list of Example objects with attributes 'src' and 'trg'
+    src_dataset = tf.data.Dataset.from_tensor_slices([ex.src for ex in examples])
+    trg_dataset = tf.data.Dataset.from_tensor_slices([ex.trg for ex in examples])
+    
+    # Combine source and target datasets
+    dataset = tf.data.Dataset.zip((src_dataset, trg_dataset))
+    
+    if shuffle:
+        # Shuffle data
+        dataset = dataset.shuffle(buffer_size=10000)
+    
+    # Batch the data
+    dataset = dataset.batch(batch_size, drop_remainder=True) #? Should we drop_remainder to maintain equal batch_sizes?
+    #? A more complex iteration function is needed in order to make the batch_size variable according to sentence length as in the paperx
+    
+    if train:
+        # Repeat the dataset if in training mode
+        dataset = dataset.repeat()
+    
+    return dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 class Example:
     def __init__(self, src, trg, file_path=None):

@@ -14,7 +14,7 @@ from helpers import load_config, log_cfg, load_checkpoint, make_model_dir, \
     make_logger, set_seed, symlink_update, ConfigurationError, get_latest_checkpoint
 from prediction import validate_on_data  # Must be adapted for TensorFlow
 from loss import RegLoss, XentLoss  # Must be implemented using tf.keras.losses
-from preprocess import create_src, create_trg, create_examples
+from preprocess import create_src, create_trg, create_examples, make_data_iter
 from vocabulary import Vocabulary as vocab
 from builders import build_optimizer, build_scheduler, build_gradient_clipper
 from plot_videos import plot_video, alter_DTW_timing
