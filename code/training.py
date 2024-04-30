@@ -16,7 +16,6 @@ from prediction import validate_on_data
 from loss import RegLoss
 from preprocess import create_src, create_trg, create_examples, make_data_iter
 from vocabulary import Vocabulary
-from constants import PAD_TOKEN_ID
 
 from builders import build_optimizer, build_gradient_clipper
 # from builders import build_optimizer, build_scheduler, build_gradient_clipper
@@ -35,7 +34,7 @@ class TrainManager:
             model_continue = True
 
         self.model_dir = make_model_dir(model_dir, overwrite=train_config.get("overwrite", False), model_continue=model_continue)
-        self.logger = make_logger(self.model_dir)
+        self.logger = make_logger(self.model_dir) # TODO: put back in when done to see log
         self.logging_freq = train_config.get("logging_freq", 100)
         self.valid_report_file = "{}/validations.txt".format(self.model_dir)
         self.tb_writer = tf.summary.create_file_writer(self.model_dir + "/tensorboard/")
@@ -165,7 +164,7 @@ class TrainManager:
 
     def train_and_validate(self, train_data, valid_data):
         #! Figure out make_data_iter
-        train_iter = make_data_iter(dataset=train_data, batch_size=self.batch_size, pad_token_id=PAD_TOKEN_ID, train=True, shuffle=self.shuffle)
+        train_iter = make_data_iter(dataset=train_data, train=True, shuffle=self.shuffle)
         # src_dataset, trg_dataset, filepath = make_data_iter(dataset=train_data, batch_size=self.batch_size, pad_token_id=PAD_TOKEN_ID, train=True, shuffle=self.shuffle)
         val_step = 0
         if self.gaussian_noise:
@@ -188,8 +187,10 @@ class TrainManager:
             # TODO: make list ourself to train each batch
             # train_iter = zip(src_dataset, trg_dataset)
             for batch in iter(train_iter):
-                # self.model.train()
-                # print("BATCH IN TRAIN: ", batch.type)
+                # self.model.train() 
+                # print("trg: ", batch.trg)
+                # print("trg 0: ", batch.trg[0] )
+                # print("trg 0 0: ", batch.trg[0][0])
                 batch = Batch(torch_batch=batch, pad_index=self.pad_index, model=self.model)
                 update = count == 0
                 batch_loss, noise = self._train_batch(batch, update=update)

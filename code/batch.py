@@ -19,10 +19,9 @@ class Batch:
         :param pad_index:
         :param use_cuda:
         """
-        print("torch batch: ", torch_batch)
         # self.src, self.src_lengths = torch_batch.src
-        self.src, self.src_lengths = torch_batch[0], len(torch_batch[0])
-        print("src: ", self.src)
+        self.src, self.src_lengths = torch_batch.src, len(torch_batch.src)
+        print("torch batch src: ", self.src)
         self.src_mask = tf.expand_dims(tf.not_equal(self.src, pad_index), axis=1)
         self.nseqs = tf.shape(self.src)[0]
         self.trg_input = None
@@ -44,13 +43,17 @@ class Batch:
         if hasattr(torch_batch, "trg"):
             trg = torch_batch.trg
             trg_lengths = trg.shape[1]
+            # trg = [trg]
+            print("trg: ", trg)
             # trg_input is used for teacher forcing, last one is cut off
             # Remove the last frame for target input, as inputs are only up to frame N-1
-            self.trg_input = tf.identity(trg[:, :-1, :])
+            self.trg_input = tf.identity(trg[:, :-1])
+            # self.trg_input = tf.identity(trg[:, :-1, :])
 
             self.trg_lengths = trg_lengths
-            # trg is used for loss computation, shifted by one since BOS
-            self.trg = tf.identity(trg[:, 1:, :])
+            # trg is used for loss computation, shifted by one since BOSTON
+            self.trg = tf.identity(trg[:, 1:])
+            # self.trg = tf.identity(trg[:, 1:, :])
 
             # Just Count
             if self.just_count_in:
@@ -72,10 +75,14 @@ class Batch:
 
             # Target Pad is dynamic, so we exclude the padded areas from the loss computation
             trg_mask = tf.expand_dims(tf.not_equal(self.trg_input, self.target_pad), axis=1)
+            print("trg mask shape: ", trg_mask.shape)
             # This increases the shape of the target mask to be even (16,1,120,120) -
             # adding padding that replicates - so just continues the False's or True's
-            pad_amount = tf.shape(self.trg_input)[1] - tf.shape(self.trg_input)[2]
+            print("trg_input: ", self.trg_input.shape)
+            pad_amount = tf.shape(self.trg_input)[2] - tf.shape(self.trg_input)[1]
+            # pad_amount = tf.shape(self.trg_input)[1] - tf.shape(self.trg_input)[2]
             # Create the target mask the same size as target input
+            print("PAD AMOUNT: ", pad_amount)
             self.trg_mask = tf.equal(tf.pad(trg_mask, [[0, 0], [0, 0], [pad_amount, 0], [0, 0]], mode='SYMMETRIC'), 1.0)
             self.ntokens = tf.cast(tf.reduce_sum(tf.cast(tf.not_equal(self.trg, pad_index), tf.float32)), tf.int32)
 

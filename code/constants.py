@@ -5,7 +5,6 @@ Defining global constants
 
 UNK_TOKEN = '<unk>'
 PAD_TOKEN = '<pad>'
-PAD_TOKEN_ID = 1
 BOS_TOKEN = '<s>'
 EOS_TOKEN = '</s>'
 

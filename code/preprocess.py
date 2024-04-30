@@ -64,14 +64,13 @@ def create_trg():
     # for each directory get all of its json files (these store the joints data for each frame)
     json_data = None
 
-    for i in directories[:3]: # TODO CHANGE
+    for i in directories[:1]: # TODO CHANGE
         directory_path = os.path.join(json_path, i)
         files = os.listdir(directory_path)
 
         # each json file stores the data for a frame
         frames = []
         total_frames = len(files)
-        print(f"TOTAL FRAMES: {total_frames}")
         for j, file_name in enumerate(sorted(files)): # we need to maintain the sequence of frames so we sort files by name
 
             file_path = os.path.join(directory_path, file_name)
@@ -95,8 +94,15 @@ def create_trg():
 
         if frames:  # Only process non-empty frame lists
             # Convert frame list to a stacked numpy array, then to a TensorFlow tensor
+            # print("before frames: ", frames[0])
             frames_tensor = tf.convert_to_tensor(np.stack(frames, axis=0), dtype=tf.float32)
-            output[i] = frames_tensor
+            # print("after frames: ", frames_tensor)
+            # print("AFTER FRAMES: ",tf.expand_dims(frames_tensor, axis=0))
+
+
+            # frames_tensor = tf.convert_to_tensor(np.stack(frames, axis=0), dtype=tf.float32)
+            # output[i] = frames_tensor
+            output[i] = tf.expand_dims(frames_tensor, axis=0)
 
     #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
     return output
@@ -119,8 +125,11 @@ def create_src():
             
     return src_dictionary
 
-def make_data_iter(dataset, batch_size, pad_token_id, shuffle=True, train=True):
-    if shuffle:
+def make_data_iter(dataset, shuffle=True, train=True):
+    """
+    Shuffles dataset. That's all.
+    """
+    if shuffle and train:
         np.random.shuffle(dataset)
 
     return dataset
@@ -165,7 +174,7 @@ def create_examples(src, trg):
     return examples
 
 def test():
-    trg_dict = create_trg() # shape = (201, 411 + counter) -> (num frames, data points per frame + counter)
+    trg_dict = create_trg() # shape = (x, 411 + counter) -> (num frames, data points per frame + counter)
     src_dict = create_src()
     examples = create_examples(src_dict, trg_dict)
 

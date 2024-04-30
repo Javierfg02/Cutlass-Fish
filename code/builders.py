@@ -64,7 +64,7 @@ def build_optimizer(config):
     weight_decay = config.get("weight_decay", 0)
     # TODO: not being used
     if optimizer_name == "adam":
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,
+        optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate,
                                              beta_1=0.9, beta_2=0.999,
                                              epsilon=1e-07,
                                              name="Adam")

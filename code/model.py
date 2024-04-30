@@ -310,8 +310,8 @@ def build_model(cfg: dict = None,
                   out_trg_size=out_trg_size)
 
     # Custom initialization of model parameters
-    print("PRINTING MODEL IN BUILD_MODEL: " , model.encoder)
-    print("MODEL SRC WEIGHTS: ", model.src_embed.lut.weights)
+    # print("PRINTING MODEL IN BUILD_MODEL: " , model.encoder)
+    # print("MODEL SRC WEIGHTS: ", model.src_embed.lut.weights)
     initialize_model(model, cfg, src_padding_idx, trg_padding_idx)
 
     return model
