@@ -164,7 +164,7 @@ class Model(tf.keras.Model):
             :return: batch_loss: sum of losses over non-pad elements in the batch
             """
         # Forward through the batch input
-        skel_out, _ = self.forward(src=batch.src, trg_input=batch.trg_input,src_mask=batch.src_mask, src_lengths=batch.src_lengths, trg_mask=batch.trg_mask)
+        skel_out, _ = self.call(src=batch.src, trg_input=batch.trg_input,src_mask=batch.src_mask, src_lengths=batch.src_lengths, trg_mask=batch.trg_mask)
 
         # compute batch loss using skel_out and the batch target
         batch_loss = loss_function(skel_out, batch.trg)

@@ -6,6 +6,9 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 import re
+from vocabulary import Vocabulary
+import numpy as np
+from random import shuffle
 
 
 RAW_DATA_PATH = '../data/val/raw'
@@ -60,12 +63,11 @@ def create_trg():
     directories = os.listdir(json_path) # get all the directories
     # for each directory get all of its json files (these store the joints data for each frame)
     json_data = None
-    for i in directories:
+
+    for i in directories[:3]: # TODO CHANGE
         directory_path = os.path.join(json_path, i)
         files = os.listdir(directory_path)
 
-        if (i != directories[0]): #! Added to save time. Only goes through the first directory - need to go through all in the end
-            continue
         # each json file stores the data for a frame
         frames = []
         total_frames = len(files)
@@ -117,46 +119,12 @@ def create_src():
             
     return src_dictionary
 
-def make_data_iter(examples, batch_size, pad_token_id, shuffle=True, train=True, sort_within_batch=True):
-    """
-    Create a TensorFlow data iterator that better replicates the PyTorch BucketIterator functionality.
-    
-    Args:
-        examples (list): List of Example objects with attributes 'src' and 'trg'.
-        batch_size (int): The size of batches to return.
-        pad_token_id (int): Token id used for padding variable-length sequences.
-        shuffle (bool): Whether to shuffle the data each epoch.
-        train (bool): Whether the iterator is used for training (affects repetition and shuffling).
-        sort_within_batch (bool): Whether to sort data within each batch by sequence length (mimics PyTorch's BucketIterator).
-
-    Returns:
-        tf.data.Dataset: A TensorFlow Dataset yielding batches of data.
-    """
-
-    # Extract sequences and targets from examples
-    src_dataset = tf.data.Dataset.from_tensor_slices([ex.src for ex in examples])
-    trg_dataset = tf.data.Dataset.from_tensor_slices([ex.trg for ex in examples])
-
-    # Combine source and target datasets
-    dataset = tf.data.Dataset.zip((src_dataset, trg_dataset))
-
+def make_data_iter(dataset, batch_size, pad_token_id, shuffle=True, train=True):
     if shuffle:
-        dataset = dataset.shuffle(buffer_size=len(examples))
+        np.random.shuffle(dataset)
 
-    # Use padded_batch to handle variable-length sequences
-    # TODO: FIX
-    # dataset = dataset.padded_batch(
-    #     batch_size,
-    #     padded_shapes=([None], [None, None]),
-    #     padding_values=(pad_token_id, 0),
-    #     drop_remainder=True
-    # )
-
-    if train:
-        dataset = dataset.repeat()  # Repeat the dataset indefinitely for training
-
-    return dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-
+    return dataset
+        
 class Example:
     def __init__(self, src, trg, file_path=None):
         self.src = src
@@ -176,11 +144,17 @@ def create_examples(src, trg):
     """
 
     examples = []
+    vocab = Vocabulary()
+    vocab._from_file('../configs/src_vocab.txt')
+    stoi = vocab.stoi
+    # build vocab
+
     for key in src.keys():
         if key in trg:
             tokens = tokenize(src[key])
+            indexed_tokens = [stoi.get(token, stoi['<unk>']) for token in tokens]
             example = Example(
-                src=tokens,
+                src=indexed_tokens, # convert words to their matching index
                 trg=trg[key],
                 file_path=key
             )

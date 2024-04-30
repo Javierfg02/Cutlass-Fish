@@ -19,7 +19,10 @@ class Batch:
         :param pad_index:
         :param use_cuda:
         """
-        self.src, self.src_lengths = torch_batch.src
+        print("torch batch: ", torch_batch)
+        # self.src, self.src_lengths = torch_batch.src
+        self.src, self.src_lengths = torch_batch[0], len(torch_batch[0])
+        print("src: ", self.src)
         self.src_mask = tf.expand_dims(tf.not_equal(self.src, pad_index), axis=1)
         self.nseqs = tf.shape(self.src)[0]
         self.trg_input = None
@@ -28,7 +31,9 @@ class Batch:
         self.trg_lengths = None
         self.ntokens = None
 
-        self.file_paths = torch_batch.file_paths
+        # self.file_paths = torch_batch.file_paths
+        # print("torch batch", torch_batch[0])
+        # self.file_paths = torch_batch[1]
         self.use_cuda = model.use_cuda
         self.target_pad = TARGET_PAD
         # Just Count

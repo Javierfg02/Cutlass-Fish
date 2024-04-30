@@ -8,14 +8,13 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from model import Model
-from model import build_model  # This should now return a TensorFlow Keras model
-from batch import Batch  # This needs to be adapted for TensorFlow's data handling
+from model import build_model 
+from batch import Batch 
 from helpers import load_config, log_cfg, load_checkpoint, make_model_dir, \
     make_logger, set_seed, symlink_update, ConfigurationError, get_latest_checkpoint
-from prediction import validate_on_data  # Must be adapted for TensorFlow
-from loss import RegLoss, XentLoss  # Must be implemented using tf.keras.losses
+from prediction import validate_on_data 
+from loss import RegLoss
 from preprocess import create_src, create_trg, create_examples, make_data_iter
-from vocabulary import Vocabulary as vocab
 from vocabulary import Vocabulary
 from constants import PAD_TOKEN_ID
 
@@ -166,7 +165,8 @@ class TrainManager:
 
     def train_and_validate(self, train_data, valid_data):
         #! Figure out make_data_iter
-        train_iter = make_data_iter(train_data, batch_size=self.batch_size, pad_token_id=PAD_TOKEN_ID, train=True, shuffle=self.shuffle)
+        train_iter = make_data_iter(dataset=train_data, batch_size=self.batch_size, pad_token_id=PAD_TOKEN_ID, train=True, shuffle=self.shuffle)
+        # src_dataset, trg_dataset, filepath = make_data_iter(dataset=train_data, batch_size=self.batch_size, pad_token_id=PAD_TOKEN_ID, train=True, shuffle=self.shuffle)
         val_step = 0
         if self.gaussian_noise:
             all_epoch_noise = []
@@ -184,12 +184,12 @@ class TrainManager:
             count = self.batch_multiplier - 1
             epoch_loss = 0
 
-            if self.gaussian_noise and len(all_epoch_noise) != 0:
-                self.model.out_stds = np.mean(np.stack(([noise.std(axis=[0]) for noise in all_epoch_noise])), axis=-2)
-            all_epoch_noise = []
 
+            # TODO: make list ourself to train each batch
+            # train_iter = zip(src_dataset, trg_dataset)
             for batch in iter(train_iter):
                 # self.model.train()
+                # print("BATCH IN TRAIN: ", batch.type)
                 batch = Batch(torch_batch=batch, pad_index=self.pad_index, model=self.model)
                 update = count == 0
                 batch_loss, noise = self._train_batch(batch, update=update)
@@ -353,8 +353,8 @@ class TrainManager:
         with tf.GradientTape() as tape:
             gradients = tape.gradient(norm_batch_multiply, self.model.trainable_variables)
 
-        if self.clip_grad_fun is not None:
-            self.clip_grad_fun(gradients, self.model.trainable_variables)
+        # if self.clip_grad_fun is not None:
+        #     self.clip_grad_fun(gradients, self.model.trainable_variables)
 
         if update:
             self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
@@ -381,7 +381,6 @@ class TrainManager:
                         current_lr, "*" if new_best else ""))
 
     def _log_parameters_list(self):
-        print("inside log fun")
         # model_parameters = filter(lambda p: p.requires_grad, self.model.trainable_variables)
         model_parameters = self.model.trainable_variables
         n_params = sum(np.prod(v.shape) for v in model_parameters)
@@ -403,8 +402,11 @@ def train(cfg_file, ckpt=None):
     trg = create_trg()
     src = create_src()
     train_data = create_examples(src, trg)
+    # print("TRAIN DATA SRC: ", train_data[0])
+    # print("TRAIN DATA TRG: ", train_data[1])
     dev_data = create_examples(src, trg)
     vocab._from_file('../configs/src_vocab.txt')
+    # print("vocab stoi: ", vocab.stoi)
     src_vocab = vocab
     trg_vocab = [None] * len(src_vocab)
     model = build_model(cfg, src_vocab=src_vocab, trg_vocab=trg_vocab)
