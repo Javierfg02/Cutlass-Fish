@@ -1,6 +1,31 @@
 
 import math
 import tensorflow as tf 
+# def xavier_uniform_n_(w: Tensor, gain: float = 1., n: int = 4) -> None:
+#     """
+#     Xavier initializer for parameters that combine multiple matrices in one
+#     parameter for efficiency. This is e.g. used for GRU and LSTM parameters,
+#     where e.g. all gates are computed at the same time by 1 big matrix.
+
+#     :param w: parameter
+#     :param gain: default 1
+#     :param n: default 4
+#     """
+#     with torch.no_grad():
+#         fan_in, fan_out = _calculate_fan_in_and_fan_out(w)
+#         assert fan_out % n == 0, "fan_out should be divisible by n"
+#         fan_out //= n
+#         std = gain * math.sqrt(2.0 / (fan_in + fan_out))
+#         a = math.sqrt(3.0) * std
+#         nn.init.uniform_(w, -a, a)
+def xavier_uniform_n_(w, gain=1.0, n=4):
+    fan_in = w.shape[0]
+    fan_out = w.shape[1]
+    assert fan_out % n == 0, "fan_out should be divisible by n"
+    fan_out //= n
+    std = gain * math.sqrt(2.0 / (fan_in + fan_out))
+    a = math.sqrt(3.0) * std
+    return tf.random.uniform(w.shape, minval=-a, maxval=a)
 
 def initialize_model(model, cfg: dict, src_padding_idx: int,
                      trg_padding_idx: int) -> None:
@@ -67,17 +92,33 @@ def initialize_model(model, cfg: dict, src_padding_idx: int,
     bias_init_fn_ = _parse_init(bias_init, bias_init_weight, gain)
 
 
-    for name, p in model.named_parameters():
+    # for name, p in model.named_parameters():
+    # for name, p in model.add_variable():
+    # for name, p in model.trainable_variables:
+    # for name, p in model.layers:
+    #     if "embed" in name:
+    #         if "bias" in name:
+    #             bias_init_fn_(p)
+    #         else:
+    #             embed_init_fn_(p)
 
-        if "embed" in name:
-            if "bias" in name:
-                bias_init_fn_(p)
-            else:
-                embed_init_fn_(p)
+    #     elif "bias" in name:
+    #         bias_init_fn_(p)
 
-        elif "bias" in name:
-            bias_init_fn_(p)
+    # model.build()
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.layers.Embedding):
+            layer.embeddings_initializer = embed_init
 
+        if hasattr(layer, 'bias') and layer.bias is not None:
+            layer.bias_initializer = bias_init
 
-        # zero out paddings
-        model.src_embed.lut.weight.data[src_padding_idx].zero_()
+        if hasattr(layer, 'kernel') and layer.kernel is not None:
+            layer.kernel_initializer = init
+    
+    # zero out paddings
+    # model.src_embed.lut.weight.data[src_padding_idx].zero_()
+    # model.src_embed.lut.weight.data[src_padding_idx].assign(tf.zeros_like(model.src_embed.lut.weight.data[src_padding_idx]))
+    print("WEIGHTS: ", model.src_embed.lut.weights)
+    # model.src_embed.lut.weights[0].assign(tf.zeros_like(model.src_embed.lut.weights[0]))
+

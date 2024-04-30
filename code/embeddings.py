@@ -67,6 +67,7 @@ class Embeddings(tf.keras.layers.Layer):
                                              mask_zero=True, input_length=None)
 
         if freeze:
+            # freeze_params(self)
             self.lut.trainable = False
 
     # pylint: disable=arguments-differ

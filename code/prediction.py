@@ -5,7 +5,8 @@ import tensorflow as tf
 from helpers import bpe_postprocess, load_config, get_latest_checkpoint, calculate_dtw
 from model import build_model
 from batch import Batch
-from data import load_data, make_data_iter
+# from data import load_data, make_data_iter
+from preprocess import make_data_iter
 from constants import UNK_TOKEN, PAD_TOKEN, EOS_TOKEN
 
 def validate_on_data(model,
@@ -21,7 +22,10 @@ def validate_on_data(model,
     # Create TensorFlow dataset and iterator
     valid_dataset = tf.data.Dataset.from_tensor_slices(data)
     valid_dataset = valid_dataset.batch(batch_size)
-    valid_iter = iter(valid_dataset)
+    # valid_iter = iter(valid_dataset) # TODO: NOT A FUNC?
+    valid_iter = make_data_iter(
+        dataset=data, batch_size=batch_size, batch_type=batch_type,
+        shuffle=True, train=False)
 
     pad_index = model.src_vocab.index(PAD_TOKEN)
     model.eval()

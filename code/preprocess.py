@@ -140,20 +140,17 @@ def make_data_iter(examples, batch_size, pad_token_id, shuffle=True, train=True,
     # Combine source and target datasets
     dataset = tf.data.Dataset.zip((src_dataset, trg_dataset))
 
-    # Optionally sort dataset globally by sequence length
-    if sort_within_batch:
-        dataset = dataset.sort(lambda x, y: tf.shape(x)[0])
-
     if shuffle:
         dataset = dataset.shuffle(buffer_size=len(examples))
 
     # Use padded_batch to handle variable-length sequences
-    dataset = dataset.padded_batch(
-        batch_size,
-        padded_shapes=([None], [None, None]),
-        padding_values=(pad_token_id, 0),
-        drop_remainder=True
-    )
+    # TODO: FIX
+    # dataset = dataset.padded_batch(
+    #     batch_size,
+    #     padded_shapes=([None], [None, None]),
+    #     padding_values=(pad_token_id, 0),
+    #     drop_remainder=True
+    # )
 
     if train:
         dataset = dataset.repeat()  # Repeat the dataset indefinitely for training
@@ -210,7 +207,7 @@ def test():
 
         # Print the first 5 frames' info for a quick check
         print(f"Source: {example.src}\n")
-        # print(f"Target: {example.trg}\n")
+        print(f"Target: {example.trg}\n")
         print(f"Target shape: {example.trg.shape}\n")
         # print(f"Target type: {type(example.trg)}\n")
         print(f"File Path: {example.file_path}\n")

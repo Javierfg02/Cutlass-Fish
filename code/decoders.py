@@ -2,7 +2,8 @@
 
 import tensorflow as tf
 
-from helpers import freeze_params, ConfigurationError, subsequent_mask, uneven_subsequent_mask
+# from helpers import freeze_params, ConfigurationError, subsequent_mask, uneven_subsequent_mask
+from helpers import freeze_params, ConfigurationError, subsequent_mask
 from transformer_layers import PositionalEncoding, \
     TransformerDecoderLayer
 
@@ -60,7 +61,7 @@ class TransformerDecoder(Decoder):
 
         # create num_layers decoder layers and put them in a list
     
-        self.layers = tf.keras.Sequential([TransformerDecoderLayer(hidden_size,
+        self.decoder_layers = tf.keras.Sequential([TransformerDecoderLayer(hidden_size,
                                                                    ff_size,num_heads,dropout,decoder_trg_trg_) for _ in range (num_layers)])
 
         self.pe = PositionalEncoding(hidden_size,mask_count=True)

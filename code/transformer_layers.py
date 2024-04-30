@@ -19,8 +19,8 @@ class MultiHeadedAttention(tf.keras.Model):
         self.v_layer = tf.keras.layers.Dense(num_heads*self.head_size)
         self.q_layer = tf.keras.layers.Dense(num_heads*self.head_size)
         
-        self.output = tf.keras.layers.Dense(size)
-        self.softmax = tf.keras.layers.Softmax(dim=-1)
+        self.output_layer = tf.keras.layers.Dense(size)
+        self.softmax = tf.keras.layers.Softmax(axis=-1)
         self.dropout = tf.keras.layers.Dropout(dropout)
         self.target_pad = 0.0
 
@@ -94,16 +94,22 @@ class PositionalEncoding(tf.Module):
         if size % 2 != 0:
             raise ValueError("Cannot use sin/cos positional encoding with "
                              "odd dim (got dim={:d})".format(size))
-        pe = tf.zeros(max_len, size)
-        position = tf.range(0, max_len).unsqueeze(1)
+        # pe = tf.zeros(max_len, size)
+        pe = np.zeros((max_len, size))
+        # position = tf.range(0, max_len).unsqueeze(1)
+        position = np.arange(0, max_len).reshape(-1, 1)
         div_term = tf.exp((tf.range(0, size, 2, dtype=tf.float32) *
                               -(math.log(10000.0) / size)))
-        pe[:, 0::2] = tf.sin(position.float() * div_term)
-        pe[:, 1::2] = tf.cos(position.float() * div_term)
-        pe = pe.unsqueeze(0)  # shape: [1, size, max_len]
+        # pe[:, 0::2] = tf.sin(position.float() * div_term)
+        # pe[:, 1::2] = tf.cos(position.float() * div_term)
+        pe[:, 0::2] = np.sin(position * div_term)
+        pe[:, 1::2] = np.cos(position * div_term)
+        # pe = pe.unsqueeze(0)  # shape: [1, size, max_len]
+        pe = pe[np.newaxis, :, :]  # shape: [1, max_len, size]
 
         super(PositionalEncoding, self).__init__()
-        self.register_buffer('pe', pe)
+        # self.register_buffer('pe', pe)
+        self.pe = tf.constant(pe, dtype=tf.float32)
         self.dim = size
         self.mask_count = mask_count
 

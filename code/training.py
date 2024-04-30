@@ -7,7 +7,7 @@ import numpy as np
 
 import tensorflow as tf
 from tensorflow import keras
-
+from model import Model
 from model import build_model  # This should now return a TensorFlow Keras model
 from batch import Batch  # This needs to be adapted for TensorFlow's data handling
 from helpers import load_config, log_cfg, load_checkpoint, make_model_dir, \
@@ -16,13 +16,17 @@ from prediction import validate_on_data  # Must be adapted for TensorFlow
 from loss import RegLoss, XentLoss  # Must be implemented using tf.keras.losses
 from preprocess import create_src, create_trg, create_examples, make_data_iter
 from vocabulary import Vocabulary as vocab
-from builders import build_optimizer, build_scheduler, build_gradient_clipper
+from vocabulary import Vocabulary
+from constants import PAD_TOKEN_ID
+
+from builders import build_optimizer, build_gradient_clipper
+# from builders import build_optimizer, build_scheduler, build_gradient_clipper
 from plot_videos import plot_video, alter_DTW_timing
 
 TARGET_PAD = 0.0
 
 class TrainManager:
-    def __init__(self, model, config, test=False):
+    def __init__(self, model:Model, config, test=False):
         train_config = config["training"]
         model_dir = train_config["model_dir"]
         model_continue = train_config.get("continue", True)
@@ -40,14 +44,14 @@ class TrainManager:
         self.model = model
         self.pad_index = self.model.pad_index
         self.bos_index = self.model.bos_index
-        self._log_parameters_list()
+        # self._log_parameters_list()
         self.target_pad = TARGET_PAD
 
         self.loss = RegLoss(config, target_pad=self.target_pad)
 
         self.learning_rate_min = train_config.get("learning_rate_min", 1.0e-8)
         self.clip_grad_fun = build_gradient_clipper(config=train_config)
-        self.optimizer = build_optimizer(config=train_config, parameters=self.model.trainable_variables)
+        self.optimizer = build_optimizer(config=train_config)
 
         self.validation_freq = train_config.get("validation_freq", 1000)
         self.ckpt_best_queue = queue.Queue(maxsize=train_config.get("keep_last_ckpts", 1))
@@ -62,7 +66,7 @@ class TrainManager:
         self.early_stopping_metric = train_config.get("early_stopping_metric", "eval_metric")
         self.minimize_metric = True if self.early_stopping_metric in ["loss", "dtw"] else False
 
-        self.scheduler, self.scheduler_step_at = build_scheduler(config=train_config, scheduler_mode="min" if self.minimize_metric else "max", optimizer=self.optimizer, hidden_size=config["model"]["encoder"]["hidden_size"])
+        # self.scheduler, self.scheduler_step_at = build_scheduler(config=train_config, scheduler_mode="min" if self.minimize_metric else "max", optimizer=self.optimizer, hidden_size=config["model"]["encoder"]["hidden_size"])
 
         self.level = "word"
         self.shuffle = train_config.get("shuffle", True)
@@ -116,7 +120,7 @@ class TrainManager:
             "best_ckpt_iteration": self.best_ckpt_iteration,
             "model_state": self.model.get_weights(),
             "optimizer_state": self.optimizer.get_weights(),
-            "scheduler_state": self.scheduler.get_config() if self.scheduler is not None else None,
+            # "scheduler_state": self.scheduler.get_config() if self.scheduler is not None else None,
         }
         np.save(model_path, state)  # Use TensorFlow's save mechanism or np.save for simplicity
         if type == "best":
@@ -151,8 +155,8 @@ class TrainManager:
         model_checkpoint = np.load(path, allow_pickle=True).item()
         self.model.set_weights(model_checkpoint["model_state"])
         self.optimizer.set_weights(model_checkpoint["optimizer_state"])
-        if model_checkpoint["scheduler_state"] is not None and self.scheduler is not None:
-            self.scheduler.from_config(model_checkpoint["scheduler_state"])
+        # if model_checkpoint["scheduler_state"] is not None and self.scheduler is not None:
+        #     self.scheduler.from_config(model_checkpoint["scheduler_state"])
         self.steps = model_checkpoint["steps"]
         self.total_tokens = model_checkpoint["total_tokens"]
         self.best_ckpt_score = model_checkpoint["best_ckpt_score"]
@@ -162,17 +166,18 @@ class TrainManager:
 
     def train_and_validate(self, train_data, valid_data):
         #! Figure out make_data_iter
-        train_iter = make_data_iter(train_data, batch_size=self.batch_size, batch_type=self.batch_type, train=True, shuffle=self.shuffle)
+        train_iter = make_data_iter(train_data, batch_size=self.batch_size, pad_token_id=PAD_TOKEN_ID, train=True, shuffle=self.shuffle)
         val_step = 0
         if self.gaussian_noise:
             all_epoch_noise = []
 
         for epoch_no in range(self.epochs):
             self.logger.info("EPOCH %d", epoch_no + 1)
-            if self.scheduler is not None and self.scheduler_step_at == "epoch":
-                self.scheduler.step(epoch=epoch_no)
+            # if self.scheduler is not None and self.scheduler_step_at == "epoch":
+            #     self.scheduler.step(epoch=epoch_no)
 
-            self.model.train()
+            # TODO: comment back in for tensorflow version
+            # self.model.train()
             start = time.time()
             total_valid_duration = 0
             start_tokens = self.total_tokens
@@ -184,8 +189,8 @@ class TrainManager:
             all_epoch_noise = []
 
             for batch in iter(train_iter):
-                self.model.train()
-                batch = Batch(batch=batch, pad_index=self.pad_index, model=self.model)
+                # self.model.train()
+                batch = Batch(torch_batch=batch, pad_index=self.pad_index, model=self.model)
                 update = count == 0
                 batch_loss, noise = self._train_batch(batch, update=update)
                 if self.gaussian_noise:
@@ -201,8 +206,8 @@ class TrainManager:
                 count -= 1
                 epoch_loss += batch_loss.numpy()
 
-                if self.scheduler is not None and self.scheduler_step_at == "step" and update:
-                    self.scheduler.step()
+                # if self.scheduler is not None and self.scheduler_step_at == "step" and update:
+                #     self.scheduler.step()
 
                 if self.steps % self.logging_freq == 0 and update:
                     elapsed = time.time() - start - total_valid_duration
@@ -266,8 +271,8 @@ class TrainManager:
 
                     self._save_checkpoint(type="every")
 
-                    if self.scheduler is not None and self.scheduler_step_at == "validation":
-                        self.scheduler.step(ckpt_score)
+                    # if self.scheduler is not None and self.scheduler_step_at == "validation":
+                    #     self.scheduler.step(ckpt_score)
 
                     self._add_report(
                         valid_score=valid_score, valid_loss=valid_loss,
@@ -376,23 +381,31 @@ class TrainManager:
                         current_lr, "*" if new_best else ""))
 
     def _log_parameters_list(self):
-        model_parameters = filter(lambda p: p.requires_grad, self.model.trainable_variables)
-        n_params = sum([np.prod(p.shape) for p in model_parameters])
+        print("inside log fun")
+        # model_parameters = filter(lambda p: p.requires_grad, self.model.trainable_variables)
+        model_parameters = self.model.trainable_variables
+        n_params = sum(np.prod(v.shape) for v in model_parameters)
+        # n_params = sum([np.prod(p.shape) for p in model_parameters])
         self.logger.info("Total params: %d", n_params)
-        trainable_params = [n for (n, p) in self.model.named_parameters() if p.requires_grad]
+        # TODO: CHANGE TO MODEL.LAYERS?
+        trainable_params = [v.name for v in model_parameters]
+
+        # trainable_params = [n for (n, p) in self.model.named_parameters() if p.requires_grad]
         self.logger.info("Trainable parameters: %s", sorted(trainable_params))
         assert trainable_params
 
 
 def train(cfg_file, ckpt=None):
     cfg = load_config(cfg_file)
+    vocab = Vocabulary()
     set_seed(seed=cfg["training"].get("random_seed", 42))
     # train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg) #! Important for the data processing
     trg = create_trg()
     src = create_src()
     train_data = create_examples(src, trg)
     dev_data = create_examples(src, trg)
-    src_vocab = vocab._from_file('../configs/src_vocab')
+    vocab._from_file('../configs/src_vocab.txt')
+    src_vocab = vocab
     trg_vocab = [None] * len(src_vocab)
     model = build_model(cfg, src_vocab=src_vocab, trg_vocab=trg_vocab)
 
@@ -404,6 +417,7 @@ def train(cfg_file, ckpt=None):
     trainer = TrainManager(model=model, config=cfg)
     shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")
     log_cfg(cfg, trainer.logger)
+    # print("MODEL: ", model)
     trainer.train_and_validate(train_data, dev_data)
     test(cfg_file)
 
@@ -431,7 +445,7 @@ def test(cfg_file, ckpt=None):
     trainer = TrainManager(model=model, config=cfg, test=True)
     for data_set_name, data_set in data_to_predict.items():
         score, loss, references, hypotheses, inputs, all_dtw_scores, file_paths = validate_on_data(
-            model=model, data=data_set, batch_size=batch_size, max_output_length=max_output_length, eval_metric=eval_metric, loss_function=None, batch_type=batch_type, type="val" if not data_set_name is "train" else "train_inf"
+            model=model, data=data_set, batch_size=batch_size, max_output_length=max_output_length, eval_metric=eval_metric, loss_function=None, batch_type=batch_type, type="val" if data_set_name != "train" else "train_inf"
         )
         display = list(range(len(hypotheses)))
         trainer.produce_validation_video(output_joints=hypotheses, inputs=inputs, references=references, model_dir=model_dir, display=display, type="test", file_paths=file_paths)

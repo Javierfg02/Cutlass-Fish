@@ -37,7 +37,9 @@ class Model(tf.keras.Model):
         :param src_vocab: source vocabulary
         :param trg_vocab: target vocabulary
         """
-        super().__init__()
+        # super().__init__()
+        super(Model, self).__init__()
+
 
         model_cfg = cfg["model"]
 
@@ -245,6 +247,7 @@ def build_model(cfg: dict = None,
     cfg = cfg["model"]
 
     src_padding_idx = src_vocab.stoi[PAD_TOKEN]
+    # src_padding_idx = src_vocab[PAD_TOKEN]
     trg_padding_idx = 0
 
     # Input target size is the joint vector length plus one for counter
@@ -292,7 +295,7 @@ def build_model(cfg: dict = None,
     # Transformer Decoder
     decoder = TransformerDecoder(
         **cfg["decoder"], encoder=encoder, vocab_size=len(trg_vocab),
-        emb_size=trg_linear.out_features, emb_dropout=dec_emb_dropout,
+        emb_size=trg_linear.units, emb_dropout=dec_emb_dropout,
         trg_size=out_trg_size, decoder_trg_trg_=decoder_trg_trg)
 
     # Define the model
@@ -307,6 +310,8 @@ def build_model(cfg: dict = None,
                   out_trg_size=out_trg_size)
 
     # Custom initialization of model parameters
+    print("PRINTING MODEL IN BUILD_MODEL: " , model.encoder)
+    print("MODEL SRC WEIGHTS: ", model.src_embed.lut.weights)
     initialize_model(model, cfg, src_padding_idx, trg_padding_idx)
 
     return model
