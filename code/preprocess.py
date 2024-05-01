@@ -101,8 +101,8 @@ def create_trg():
 
 
             # frames_tensor = tf.convert_to_tensor(np.stack(frames, axis=0), dtype=tf.float32)
-            # output[i] = frames_tensor
-            output[i] = tf.expand_dims(frames_tensor, axis=0)
+            output[i] = frames_tensor
+            # output[i] = tf.expand_dims(frames_tensor, axis=0)
 
     #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
     return output
