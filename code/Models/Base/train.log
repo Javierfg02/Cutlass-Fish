@@ -14218,3 +14218,62 @@
 2024-05-01 16:47:22,909 cfg.model.decoder.dropout          : 0.0
 2024-05-01 16:47:22,909 EPOCH 1
 >>>>>>> ae1e73698d5addf0f654983b6b3d1d7d1362d60a
+2024-05-01 18:33:42,697 Progressive Transformers for End-to-End SLP
+2024-05-01 18:33:42,714 Can't find checkpoint in directory None
+2024-05-01 18:33:42,715 cfg.data.src                       : gloss
+2024-05-01 18:33:42,715 cfg.data.trg                       : skels
+2024-05-01 18:33:42,715 cfg.data.files                     : files
+2024-05-01 18:33:42,715 cfg.data.train                     : ./data/train/raw/openpose_output/json/
+2024-05-01 18:33:42,715 cfg.data.dev                       : ./data/val/raw/openpose_output/json/
+2024-05-01 18:33:42,716 cfg.data.test                      : ./data/test/raw/openpose_output/json/
+2024-05-01 18:33:42,716 cfg.data.max_sent_length           : 300
+2024-05-01 18:33:42,716 cfg.data.skip_frames               : 1
+2024-05-01 18:33:42,716 cfg.data.src_vocab                 : ./configs/src_vocab.txt
+2024-05-01 18:33:42,716 cfg.training.random_seed           : 27
+2024-05-01 18:33:42,716 cfg.training.optimizer             : adam
+2024-05-01 18:33:42,716 cfg.training.learning_rate         : 0.001
+2024-05-01 18:33:42,716 cfg.training.learning_rate_min     : 0.0002
+2024-05-01 18:33:42,716 cfg.training.weight_decay          : 0.0
+2024-05-01 18:33:42,716 cfg.training.clip_grad_norm        : 5.0
+2024-05-01 18:33:42,716 cfg.training.batch_size            : 8
+2024-05-01 18:33:42,716 cfg.training.scheduling            : plateau
+2024-05-01 18:33:42,716 cfg.training.patience              : 7
+2024-05-01 18:33:42,716 cfg.training.decrease_factor       : 0.7
+2024-05-01 18:33:42,716 cfg.training.early_stopping_metric : dtw
+2024-05-01 18:33:42,716 cfg.training.epochs                : 20
+2024-05-01 18:33:42,716 cfg.training.validation_freq       : 10
+2024-05-01 18:33:42,716 cfg.training.logging_freq          : 250
+2024-05-01 18:33:42,716 cfg.training.eval_metric           : dtw
+2024-05-01 18:33:42,716 cfg.training.model_dir             : ./Models/Base
+2024-05-01 18:33:42,716 cfg.training.overwrite             : False
+2024-05-01 18:33:42,716 cfg.training.continue              : True
+2024-05-01 18:33:42,716 cfg.training.shuffle               : True
+2024-05-01 18:33:42,716 cfg.training.use_cuda              : False
+2024-05-01 18:33:42,716 cfg.training.max_output_length     : 420
+2024-05-01 18:33:42,716 cfg.training.keep_last_ckpts       : 1
+2024-05-01 18:33:42,716 cfg.training.loss                  : MSE
+2024-05-01 18:33:42,716 cfg.model.initializer              : xavier
+2024-05-01 18:33:42,716 cfg.model.bias_initializer         : zeros
+2024-05-01 18:33:42,716 cfg.model.embed_initializer        : xavier
+2024-05-01 18:33:42,716 cfg.model.trg_size                 : 412
+2024-05-01 18:33:42,716 cfg.model.just_count_in            : False
+2024-05-01 18:33:42,716 cfg.model.gaussian_noise           : False
+2024-05-01 18:33:42,716 cfg.model.noise_rate               : 5
+2024-05-01 18:33:42,716 cfg.model.future_prediction        : 0
+2024-05-01 18:33:42,716 cfg.model.encoder.type             : transformer
+2024-05-01 18:33:42,716 cfg.model.encoder.num_layers       : 2
+2024-05-01 18:33:42,716 cfg.model.encoder.num_heads        : 4
+2024-05-01 18:33:42,716 cfg.model.encoder.embeddings.embedding_dim : 512
+2024-05-01 18:33:42,716 cfg.model.encoder.embeddings.dropout : 0.0
+2024-05-01 18:33:42,716 cfg.model.encoder.hidden_size      : 512
+2024-05-01 18:33:42,717 cfg.model.encoder.ff_size          : 2048
+2024-05-01 18:33:42,717 cfg.model.encoder.dropout          : 0.0
+2024-05-01 18:33:42,717 cfg.model.decoder.type             : transformer
+2024-05-01 18:33:42,717 cfg.model.decoder.num_layers       : 2
+2024-05-01 18:33:42,717 cfg.model.decoder.num_heads        : 4
+2024-05-01 18:33:42,717 cfg.model.decoder.embeddings.embedding_dim : 512
+2024-05-01 18:33:42,717 cfg.model.decoder.embeddings.dropout : 0.0
+2024-05-01 18:33:42,717 cfg.model.decoder.hidden_size      : 512
+2024-05-01 18:33:42,717 cfg.model.decoder.ff_size          : 2048
+2024-05-01 18:33:42,717 cfg.model.decoder.dropout          : 0.0
+2024-05-01 18:33:42,717 EPOCH 1

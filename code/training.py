@@ -16,7 +16,10 @@ from prediction import validate_on_data
 from loss import RegLoss
 from preprocess import create_src, create_trg, create_examples, make_data_iter
 from vocabulary import Vocabulary
-
+import torch
+from torch import Tensor
+from torch.utils.tensorboard import SummaryWriter
+from torchtext.data import Dataset
 from builders import build_optimizer, build_gradient_clipper
 # from builders import build_optimizer, build_scheduler, build_gradient_clipper
 from plot_videos import plot_video, alter_DTW_timing
@@ -422,6 +425,8 @@ def train(cfg_file, ckpt=None):
     trainer = TrainManager(model=model, config=cfg)
     shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")
     log_cfg(cfg, trainer.logger)
+    train_data = torch.Tensor(train_data)
+    train_data = Dataset(train_data)
     print("train data: ", train_data)
     trainer.train_and_validate(train_data, dev_data)
     test(cfg_file)
