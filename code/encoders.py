@@ -3,13 +3,24 @@ from transformer_layers import \
     TransformerEncoderLayer, PositionalEncoding
 from helpers import freeze_params
 
-
+class Encoder(tf.keras.Model):
+    def output_size(self):
+        return self._output_size
 class TransformerEncoder(tf.keras.Model):
     """
     Encoder class 
     """
 
-    def __init__(self,hidden_size,ff_size,layers,heads,dropout,emb_dropout,freeze,**kwargs):
+    # def __init__(self,hidden_size,ff_size,layers,heads,dropout,emb_dropout,freeze,**kwargs):
+    def __init__(self,
+                 hidden_size: int = 512,
+                 ff_size: int = 2048,
+                 num_layers: int = 8,
+                 num_heads: int = 4,
+                 dropout: float = 0.1,
+                 emb_dropout: float = 0.1,
+                 freeze: bool = False,
+                 **kwargs):
         """
         Initializes the Encoder .
         :param hidden_size: hidden size and size of embeddings
@@ -22,8 +33,9 @@ class TransformerEncoder(tf.keras.Model):
         :param freeze: boolean to freeze the parameters of the encoder during training
         :param kwargs:
         """
-        super().__init__(**kwargs)
-        self.layers = tf.keras.Sequential([TransformerEncoderLayer(hidden_size,ff_size,heads,dropout) for _ in range (layers)])
+        # super().__init__(**kwargs)
+        super(TransformerEncoder, self).__init__()
+        self.encoder_layers = tf.keras.Sequential([TransformerEncoderLayer(hidden_size,ff_size,num_heads,dropout) for _ in range (num_layers)])
         self.norm = tf.keras.layers.LayerNormalization()
         self.pos_encoding = PositionalEncoding(hidden_size)
         self.emb_dropout = tf.keras.layers.Dropout(emb_dropout)

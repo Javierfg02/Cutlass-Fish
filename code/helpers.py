@@ -85,6 +85,23 @@ def log_cfg(cfg: dict, logger: Logger, prefix: str = "cfg") -> None:
             logger.info("{:34s} : {}".format(p, v))
 
 # TODO: MISSING CLONES, subsequent_mask, uneven_subsequent_mask
+
+def subsequent_mask(size: int):
+    """
+    Mask out subsequent positions (to prevent attending to future positions)
+    Transformer helper function.
+
+    :param size: size of mask (2nd and 3rd dim)
+    :return: Tensor with 0s and 1s of shape (1, size, size)
+    """
+    mask = np.triu(np.ones((1, size, size)), k=1).astype('uint8')
+
+    # Convert the numpy mask to TensorFlow tensor and negate (to get True/False)
+    tf_mask = tf.convert_to_tensor(mask)
+    tf_mask = tf.cast(tf_mask, tf.bool)  # Convert mask to boolean dtype (True/False)
+
+    return tf.logical_not(tf_mask)
+
 def set_seed(seed: int) -> None:
     """
     Set the random seed for modules tensorflow, numpy and random.
@@ -157,6 +174,16 @@ def freeze_params(model) -> None:
     """
     for layer in model.layers:
         layer.trainable = False
+# def freeze_params(module: tf.Module) -> None:
+#     """
+#     Freeze the parameters of this module,
+#     i.e. do not update them during training
+
+#     :param module: freeze parameters of this module
+#     """
+#     print("MODULE WEIGHTS IN FREEZE PARAMS: ", module.trainable_variables)
+#     for var in module.trainable_variables:
+#         var.trainable = False
 
 def symlink_update(target, link_name):
     try:

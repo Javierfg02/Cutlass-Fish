@@ -30,6 +30,9 @@ class Vocabulary:
             self._from_list(tokens)
         elif file is not None:
             self._from_file(file)
+    
+    def get_stoi(self):
+        return self.stoi
 
     def _from_list(self, tokens: List[str] = None) -> None:
         """
