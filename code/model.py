@@ -117,18 +117,23 @@ class Model(tf.keras.Model):
 
         return skel_out, gloss_out
 
-    def encode(self, src, src_length, src_mask) :
+    def encode(self, src, src_length, src_mask):
         """
         Encodes the source sentence.
-
-        :param src:
-        :param src_length:
-        :param src_mask:
+        :param src: Embedded source tensor
+        :param src_length: Lengths of the source inputs
+        :param src_mask: Mask for the source input
         :return: encoder outputs (output, hidden_concat)
         """
-        # Encode an embedded source
-        return self.encoder(self.src_embed(src), src_length, src_mask)
 
+        if not isinstance(src, tf.Tensor):
+            src = tf.convert_to_tensor(src, dtype=tf.int32)
+
+        print(f"IS SRC A TENSOR?: {src}")
+        # Ensure src is embedded before passing to encoder
+        src_embedded = self.src_embed(src)
+        # Call encoder with keyword arguments
+        return self.encoder(embed=src_embedded, window_size=src_length, padding=src_mask)
 
 
     def decode(self, encoder_output, src_mask, trg_input, trg_mask):

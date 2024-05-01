@@ -39,7 +39,6 @@ def build_gradient_clipper(config):
 def build_optimizer(config):
     """
     Create an optimizer for the given parameters as specified in config.
-
     Except for the weight decay and initial learning rate,
     default optimizer settings are used.
 
@@ -56,41 +55,35 @@ def build_optimizer(config):
     weight decay to 0.
 
     :param config: configuration dictionary
-    :param parameters:
     :return: optimizer
     """
     optimizer_name = config.get("optimizer", "sgd").lower()
     learning_rate = config.get("learning_rate", 3.0e-4)
     weight_decay = config.get("weight_decay", 0)
-    # TODO: not being used
+
     if optimizer_name == "adam":
-        optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate,
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,
                                              beta_1=0.9, beta_2=0.999,
-                                             epsilon=1e-07,
-                                             name="Adam")
+                                             epsilon=1e-07)
     elif optimizer_name == "adagrad":
         optimizer = tf.keras.optimizers.Adagrad(learning_rate=learning_rate,
                                                 initial_accumulator_value=0.1,
-                                                epsilon=1e-07,
-                                                name="Adagrad")
+                                                epsilon=1e-07)
     elif optimizer_name == "adadelta":
         optimizer = tf.keras.optimizers.Adadelta(learning_rate=learning_rate,
-                                                  rho=0.95, epsilon=1e-07,
-                                                  name="Adadelta")
+                                                  rho=0.95, epsilon=1e-07)
     elif optimizer_name == "rmsprop":
         optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate,
                                                 rho=0.9, momentum=0.0,
-                                                epsilon=1e-07,
-                                                name="RMSprop")
+                                                epsilon=1e-07)
     elif optimizer_name == "sgd":
         optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate,
-                                            momentum=0.0, nesterov=False,
-                                            name="SGD")
+                                            momentum=0.0, nesterov=False)
     else:
         raise ConfigurationError("Invalid optimizer. Valid options: 'adam', "
                                  "'adagrad', 'adadelta', 'rmsprop', 'sgd'.")
-    return optimizer
 
+    return optimizer
 
 # def build_scheduler(config, optimizer, scheduler_mode, hidden_size=0):
 #     """

@@ -2,7 +2,6 @@ import math
 import tensorflow as tf
 import numpy as np 
 
-
 class MultiHeadedAttention(tf.keras.Model):
 
     def __init__(self,num_heads,size,dropout):
@@ -72,7 +71,7 @@ class PositionwiseFeedForward(tf.keras.Model):
         """
         self.norm = tf.keras.layers.LayerNormalization()
         self.ff_layer = tf.keras.Sequential([
-            tf.keras.layers.Dense(ff_size,activation='ReLU'),
+            tf.keras.layers.Dense(ff_size,activation='relu'),
             tf.keras.layers.Dropout(dropout),
             tf.keras.layers.Dense(input_size),
             tf.keras.layers.Dropout(dropout)
@@ -84,38 +83,62 @@ class PositionwiseFeedForward(tf.keras.Model):
 
 
 # pylint: disable=arguments-differ
-class PositionalEncoding(tf.Module):
+# class PositionalEncoding(tf.Module):
 
-    def __init__(self,
-                 size: int = 0,
-                 max_len: int = 200000, # Max length was too small for the required length
-                 mask_count=False):
+#     def __init__(self,
+#                  size: int = 0,
+#                  max_len: int = 200000, # Max length was too small for the required length
+#                  mask_count=False):
 
-        if size % 2 != 0:
-            raise ValueError("Cannot use sin/cos positional encoding with "
-                             "odd dim (got dim={:d})".format(size))
-        # pe = tf.zeros(max_len, size)
-        pe = np.zeros((max_len, size))
-        # position = tf.range(0, max_len).unsqueeze(1)
-        position = np.arange(0, max_len).reshape(-1, 1)
-        div_term = tf.exp((tf.range(0, size, 2, dtype=tf.float32) *
-                              -(math.log(10000.0) / size)))
-        # pe[:, 0::2] = tf.sin(position.float() * div_term)
-        # pe[:, 1::2] = tf.cos(position.float() * div_term)
-        pe[:, 0::2] = np.sin(position * div_term)
-        pe[:, 1::2] = np.cos(position * div_term)
-        # pe = pe.unsqueeze(0)  # shape: [1, size, max_len]
-        pe = pe[np.newaxis, :, :]  # shape: [1, max_len, size]
+#         if size % 2 != 0:
+#             raise ValueError("Cannot use sin/cos positional encoding with "
+#                              "odd dim (got dim={:d})".format(size))
+#         # pe = tf.zeros(max_len, size)
+#         pe = np.zeros((max_len, size))
+#         # position = tf.range(0, max_len).unsqueeze(1)
+#         position = np.arange(0, max_len).reshape(-1, 1)
+#         div_term = tf.exp((tf.range(0, size, 2, dtype=tf.float32) *
+#                               -(math.log(10000.0) / size)))
+#         # pe[:, 0::2] = tf.sin(position.float() * div_term)
+#         # pe[:, 1::2] = tf.cos(position.float() * div_term)
+#         pe[:, 0::2] = np.sin(position * div_term)
+#         pe[:, 1::2] = np.cos(position * div_term)
+#         # pe = pe.unsqueeze(0)  # shape: [1, size, max_len]
+#         pe = pe[np.newaxis, :, :]  # shape: [1, max_len, size]
 
+#         super(PositionalEncoding, self).__init__()
+#         # self.register_buffer('pe', pe)
+#         self.pe = tf.constant(pe, dtype=tf.float32)
+#         self.dim = size
+#         self.mask_count = mask_count
+
+#     def forward(self, emb):
+
+#         return emb + self.pe[:, :emb.size(1)]
+
+class PositionalEncoding(tf.keras.layers.Layer):
+    def __init__(self, size: int, max_len: int = 2000):
         super(PositionalEncoding, self).__init__()
-        # self.register_buffer('pe', pe)
-        self.pe = tf.constant(pe, dtype=tf.float32)
-        self.dim = size
-        self.mask_count = mask_count
+        self.pos_encoding = self.positional_encoding(size, max_len)
+        
+    def get_angles(self, pos, i, d_model):
+        angle_rates = 1 / np.power(10000, (2 * (i//2)) / np.float32(d_model))
+        return pos * angle_rates
 
-    def forward(self, emb):
+    def positional_encoding(self, d_model, position):
+        angle_rads = self.get_angles(np.arange(position)[:, np.newaxis],
+                                     np.arange(d_model)[np.newaxis, :],
+                                     d_model)
+        
+        angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
+        angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
+        
+        pos_encoding = angle_rads[np.newaxis, ...]
+        return tf.cast(pos_encoding, dtype=tf.float32)
 
-        return emb + self.pe[:, :emb.size(1)]
+    def call(self, x):
+        seq_len = tf.shape(x)[1]
+        return x + self.pos_encoding[:, :seq_len, :]
 
 
 class TransformerEncoderLayer(tf.keras.Model):
@@ -195,16 +218,3 @@ class TransformerDecoderLayer(tf.keras.Model):
         o = self.feed_forward(self.dropout(h2) + h1)
 
         return o
-
-
-
-
-
-
-
-
-
-
-
-    
-        

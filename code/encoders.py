@@ -66,4 +66,3 @@ class TransformerEncoder(tf.keras.Model):
 
         norm = self.norm(x)
         return norm 
-        
