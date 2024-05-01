@@ -183,7 +183,6 @@ class TrainManager:
             count = self.batch_multiplier - 1
             epoch_loss = 0
 
-
             # TODO: make list ourself to train each batch
             # train_iter = zip(src_dataset, trg_dataset)
             for batch in iter(train_iter):
@@ -191,8 +190,11 @@ class TrainManager:
                 # print("trg: ", batch.trg)
                 # print("trg 0: ", batch.trg[0] )
                 # print("trg 0 0: ", batch.trg[0][0])
+                print("pre: ", batch.src)
                 batch = Batch(torch_batch=batch, pad_index=self.pad_index, model=self.model)
                 update = count == 0
+
+                print("postbatch: ", batch.src)
                 batch_loss, noise = self._train_batch(batch, update=update)
                 if self.gaussian_noise:
                     if self.future_prediction != 0:
@@ -420,7 +422,7 @@ def train(cfg_file, ckpt=None):
     trainer = TrainManager(model=model, config=cfg)
     shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")
     log_cfg(cfg, trainer.logger)
-    # print("MODEL: ", model)
+    print("train data: ", train_data)
     trainer.train_and_validate(train_data, dev_data)
     test(cfg_file)
 

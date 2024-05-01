@@ -19,7 +19,7 @@ class Batch:
         :param use_cuda:
         """
         self.src, self.src_lengths = torch_batch.src, len(torch_batch.src)
-        print("torch batch src: ", self.src)
+        # print("torch batch src: ", self.src)
         self.src_mask = tf.expand_dims(tf.not_equal(self.src, pad_index), axis=1)
         self.nseqs = tf.shape(self.src)[0]
         self.trg_input = None

@@ -137,8 +137,12 @@ class PositionalEncoding(tf.keras.layers.Layer):
         return tf.cast(pos_encoding, dtype=tf.float32)
 
     def call(self, x):
-        seq_len = tf.shape(x)[1]
-        return x + self.pos_encoding[:, :seq_len, :]
+        seq_len = x.shape[1]
+        print("x: ", x.shape)
+        print("pos encoding: ", self.pos_encoding.shape)
+        print("seq len: ", seq_len)
+        print("adding: ", self.pos_encoding[:, :seq_len].shape)
+        return x + self.pos_encoding[:, :seq_len]
 
 
 class TransformerEncoderLayer(tf.keras.Model):

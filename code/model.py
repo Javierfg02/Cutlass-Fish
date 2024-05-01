@@ -129,8 +129,9 @@ class Model(tf.keras.Model):
         if not isinstance(src, tf.Tensor):
             src = tf.convert_to_tensor(src, dtype=tf.int32)
 
-        print(f"IS SRC A TENSOR?: {src}")
+        # print(f"IS SRC A TENSOR?: {src}")
         # Ensure src is embedded before passing to encoder
+        print("src to encode: ", src)
         src_embedded = self.src_embed(src)
         # Call encoder with keyword arguments
         return self.encoder(embed=src_embedded, window_size=src_length, padding=src_mask)
