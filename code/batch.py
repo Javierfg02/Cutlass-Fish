@@ -51,7 +51,8 @@ class Batch:
                 self.trg_input = self.trg_input[:, :-self.future_prediction, :]
 
             trg_mask = tf.expand_dims(tf.not_equal(self.trg_input, self.target_pad), axis=1)
-            pad_amount = tf.maximum(0, tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2])
+            # pad_amount = tf.maximum(0, tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2])
+            pad_amount = tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2]
             if pad_amount > 0:
                 self.trg_mask = tf.equal(tf.pad(trg_mask, [[0, 0], [0, 0], [0, pad_amount], [0, 0]], mode='CONSTANT', constant_values=False), True)
             else:

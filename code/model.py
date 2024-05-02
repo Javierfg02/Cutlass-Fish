@@ -88,6 +88,7 @@ class Model(tf.keras.Model):
         encoder_output, encoder_hidden = self.encode(src=src,
                                                      src_length=src_lengths,
                                                      src_mask=src_mask)
+        print("trg_input: ", trg_input)
         unroll_steps = trg_input.size(1)
 
         # # Add gaussian noise to the target inputs, if in training
@@ -126,15 +127,12 @@ class Model(tf.keras.Model):
         :return: encoder outputs (output, hidden_concat)
         """
 
-        if not isinstance(src, tf.Tensor):
-            src = tf.convert_to_tensor(src, dtype=tf.int32)
-
-        # print(f"IS SRC A TENSOR?: {src}")
         # Ensure src is embedded before passing to encoder
         print("src to encode: ", src)
         src_embedded = self.src_embed(src)
         # Call encoder with keyword arguments
-        return self.encoder(embed=src_embedded, window_size=src_length, padding=src_mask)
+        encode_output = self.encoder(embed=src_embedded, window_size=src_length, padding=src_mask)
+        return encode_output
 
 
     def decode(self, encoder_output, src_mask, trg_input, trg_mask):

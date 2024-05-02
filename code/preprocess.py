@@ -16,6 +16,8 @@ from random import shuffle
 # import torchtext
 from torchtext import data
 from torchtext.data import Dataset, Iterator, Field
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
 
 RAW_DATA_PATH = '../data/val/raw'
 
@@ -70,7 +72,7 @@ def create_trg():
     # for each directory get all of its json files (these store the joints data for each frame)
     json_data = None
 
-    for i in directories[:1]: # TODO CHANGE
+    for i in directories[:3]: # TODO CHANGE
         directory_path = os.path.join(json_path, i)
         files = os.listdir(directory_path)
 
@@ -107,9 +109,10 @@ def create_trg():
 
 
             # frames_tensor = tf.convert_to_tensor(np.stack(frames, axis=0), dtype=tf.float32)
+            # output[i] = [frames_tensor]
             output[i] = frames_tensor
             # output[i] = tf.expand_dims(frames_tensor, axis=0)
-
+ 
     #? First directory name for testing: 279MO2nwC_E_8-2-rgb_front
     return output
 
@@ -131,50 +134,88 @@ def create_src():
             
     return src_dictionary
 
-# def make_data_iter(dataset, shuffle=True, train=True):
-#     """
-#     Shuffles dataset. That's all.
-#     """
-#     if shuffle and train:
-#         np.random.shuffle(dataset)
-
-#     return dataset
-
-def make_data_iter(dataset: Dataset,
-                   batch_size: int,
-                   batch_type: str = "sentence",
-                   train: bool = False,
-                   shuffle: bool = False) -> Iterator:
+def make_data_iter(dataset, shuffle=True, train=True):
     """
-    Returns a torchtext iterator for a torchtext dataset.
-
-    :param dataset: torchtext dataset containing src and optionally trg
-    :param batch_size: size of the batches the iterator prepares
-    :param batch_type: measure batch size by sentence count or by token count
-    :param train: whether it's training time, when turned off,
-        bucketing, sorting within batches and shuffling is disabled
-    :param shuffle: whether to shuffle the data before each epoch
-        (no effect if set to True for testing)
-    :return: torchtext iterator
+    Shuffles dataset. That's all.
     """
+    if shuffle and train:
+        np.random.shuffle(dataset)
+    return dataset
 
-    batch_size_fn = None if batch_type == "token" else None
+def map_src_sentences(dataset):
+    """
+    Converted Dataset to a list of Examples, but with src containing the mappings
+    from words to indices in a given sentence
+    
+    Builds the 2 tensors in src fields for both correspondings with padding and their corresponding lengths before padding.
+    """
+    new_dataset = []
+    tokenized_sentences = []
+    len_unpadded_seq = []
+    # First loop to get max length for all src fields in dataset (for padding)
+    for example in dataset:
+        indexed_tokens = example.src
+        # print("INDEXED TOKENS: ", indexed_tokens)
+        tokenized_sentences.append(indexed_tokens)
+    
+    for example in dataset:
+        len_unpadded_seq.append(len(indexed_tokens))
+        len_unpadded_seq_tensor = tf.convert_to_tensor(len_unpadded_seq, dtype=tf.int32)
+        # print("len_unpadded_seq: ", len_unpadded_seq)
+        # print("tokenized_sentences: ", tokenized_sentences)
+        max_length = max(len(seq) for seq in tokenized_sentences)
+        # Pad sequences to the maximum length
+        padded_sequences = pad_sequences(tokenized_sentences, maxlen=max_length, padding='post')
+        padded_sequences_tensor = tf.convert_to_tensor(padded_sequences, dtype=tf.int32)
 
-    if train:
-        # optionally shuffle and sort during training
-        data_iter = data.BucketIterator(
-            repeat=False, sort=False, dataset=dataset,
-            batch_size=batch_size, batch_size_fn=batch_size_fn,
-            train=True, sort_within_batch=True,
-            sort_key=lambda x: len(x.src), shuffle=shuffle)
-    else:
-        # don't sort/shuffle for validation/inference
-        data_iter = data.BucketIterator(
-            repeat=False, dataset=dataset,
-            batch_size=batch_size, batch_size_fn=batch_size_fn,
-            train=False, sort=False)
+        # print("Padded sequences tensor: ", padded_sequences_tensor)
+        # new_src = padded_sequences_tensor, len_unpadded_seq_tensor
+        new_src = padded_sequences_tensor
+        # print("NEW SRC: ", new_src)
+        new_example =  Example(
+            src=new_src,
+            trg=example.trg,
+            file_path=example.file_path
+        )
+        new_dataset.append(new_example)
 
-    return data_iter
+    return new_dataset
+
+# def make_data_iter(dataset: Dataset,
+#                    batch_size: int,
+#                    batch_type: str = "sentence",
+#                    train: bool = False,
+#                    shuffle: bool = False) -> Iterator:
+#     """
+#     Returns a torchtext iterator for a torchtext dataset.
+
+#     :param dataset: torchtext dataset containing src and optionally trg
+#     :param batch_size: size of the batches the iterator prepares
+#     :param batch_type: measure batch size by sentence count or by token count
+#     :param train: whether it's training time, when turned off,
+#         bucketing, sorting within batches and shuffling is disabled
+#     :param shuffle: whether to shuffle the data before each epoch
+#         (no effect if set to True for testing)
+#     :return: torchtext iterator
+#     """
+
+#     batch_size_fn = None if batch_type == "token" else None
+
+#     if train:
+#         # optionally shuffle and sort during training
+#         data_iter = data.BucketIterator(
+#             repeat=False, sort=False, dataset=dataset,
+#             batch_size=batch_size, batch_size_fn=batch_size_fn,
+#             train=True, sort_within_batch=True,
+#             sort_key=lambda x: len(x.src), shuffle=shuffle)
+#     else:
+#         # don't sort/shuffle for validation/inference
+#         data_iter = data.BucketIterator(
+#             repeat=False, dataset=dataset,
+#             batch_size=batch_size, batch_size_fn=batch_size_fn,
+#             train=False, sort=False)
+
+#     return data_iter
 
         
 class Example:
@@ -205,6 +246,7 @@ def create_examples(src, trg):
         if key in trg:
             tokens = tokenize(src[key])
             indexed_tokens = [stoi.get(token, stoi['<unk>']) for token in tokens]
+            
             example = Example(
                 src=indexed_tokens, # convert words to their matching index
                 trg=trg[key],
@@ -214,7 +256,9 @@ def create_examples(src, trg):
         else:
             # print(f'Warning: Key {key} found in source but not in target')
             pass
+
     return examples
+
 
 def test():
     trg_dict = create_trg() # shape = (x, 411 + counter) -> (num frames, data points per frame + counter)

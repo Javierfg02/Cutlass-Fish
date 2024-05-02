@@ -14,7 +14,7 @@ from helpers import load_config, log_cfg, load_checkpoint, make_model_dir, \
     make_logger, set_seed, symlink_update, ConfigurationError, get_latest_checkpoint
 from prediction import validate_on_data 
 from loss import RegLoss
-from preprocess import create_src, create_trg, create_examples, make_data_iter
+from preprocess import create_src, create_trg, create_examples, make_data_iter, map_src_sentences
 from vocabulary import Vocabulary
 import torch
 from torch import Tensor
@@ -167,7 +167,13 @@ class TrainManager:
 
     def train_and_validate(self, train_data, valid_data):
         #! Figure out make_data_iter
-        train_iter = make_data_iter(dataset=train_data, train=True, shuffle=self.shuffle)
+        mapped_dataset = map_src_sentences(dataset=train_data)
+        # for ex in mapped_dataset:
+        #     print("OUTPUT MAPPED: ", ex.src)
+        train_iter = make_data_iter(dataset=mapped_dataset, train=True, shuffle=self.shuffle)
+        # for ex in train_iter:
+        #     print("OUTPUT TRAIN ITER: ", ex.src)
+        # train_iter = make_data_iter(dataset=train_data, train=True, shuffle=self.shuffle)
         # src_dataset, trg_dataset, filepath = make_data_iter(dataset=train_data, batch_size=self.batch_size, pad_token_id=PAD_TOKEN_ID, train=True, shuffle=self.shuffle)
         val_step = 0
         if self.gaussian_noise:
@@ -193,11 +199,11 @@ class TrainManager:
                 # print("trg: ", batch.trg)
                 # print("trg 0: ", batch.trg[0] )
                 # print("trg 0 0: ", batch.trg[0][0])
-                print("pre: ", batch.src)
+                # print("pre: ", batch.src)
                 batch = Batch(torch_batch=batch, pad_index=self.pad_index, model=self.model)
                 update = count == 0
 
-                print("postbatch: ", batch.src)
+                # print("postbatch: ", batch.src)
                 batch_loss, noise = self._train_batch(batch, update=update)
                 if self.gaussian_noise:
                     if self.future_prediction != 0:
@@ -408,7 +414,12 @@ def train(cfg_file, ckpt=None):
     trg = create_trg()
     src = create_src()
     train_data = create_examples(src, trg)
-    # print("TRAIN DATA SRC: ", train_data[0])
+    # print("FIRST TRAIN DATA KEYS: ", train_data[0].__dict__.keys())
+    print("FIRST TRAIN DATA SRC: ", train_data[0].src)
+    print("TRAIN DATA TRG: ", train_data[0].trg)
+    print("FIRST TRAIN DATA TRG LEN: ", len(train_data[0].trg))
+    print("FIRST TRAIN DATA TRG 0 SHAPE: ", train_data[0].trg[0].shape)
+
     # print("TRAIN DATA TRG: ", train_data[1])
     dev_data = create_examples(src, trg) #! at the moment, validation and training datasets are the same - should not be
     vocab._from_file('../configs/src_vocab.txt')
@@ -425,8 +436,8 @@ def train(cfg_file, ckpt=None):
     trainer = TrainManager(model=model, config=cfg)
     shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")
     log_cfg(cfg, trainer.logger)
-    train_data = torch.Tensor(train_data)
-    train_data = Dataset(train_data)
+    # train_data = torch.Tensor(train_data)
+    # train_data = Dataset(train_data)
     print("train data: ", train_data)
     trainer.train_and_validate(train_data, dev_data)
     test(cfg_file)

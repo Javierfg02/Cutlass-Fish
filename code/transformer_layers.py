@@ -34,18 +34,22 @@ class MultiHeadedAttention(tf.keras.Model):
         v = self.v_layer(v)
 
         #reshaping 
-        k = tf.reshape(k,[batch_size,-1,self.num_heads,self.head_size]).transpose(1,2)
-        q = tf.reshape(q,[batch_size,-1,self.num_heads,self.head_size]).transpose(1,2)
-        v = tf.reshape(v,[batch_size,-1,self.num_heads,self.head_size]).transpose(1,2)
+        k = tf.transpose(tf.reshape(k, [batch_size, -1, self.num_heads, self.head_size]), [0, 2, 1, 3])
+        v = tf.transpose(tf.reshape(v, [batch_size, -1, self.num_heads, self.head_size]), [0, 2, 1, 3])
+        q = tf.transpose(tf.reshape(q, [batch_size, -1, self.num_heads, self.head_size]), [0, 2, 1, 3])
 
         #attention scores
-        sim_score = tf.matmul(q,k.transpose(2,3))
-        dim_k = np.sqrt(self.head_size)
-        sim_score = sim_score/dim_k
+        # sim_score = tf.matmul(q,k.transpose(2,3))
+        # dim_k = np.sqrt(self.head_size)
+        # sim_score = sim_score/dim_k
+
+        q = q / tf.math.sqrt(tf.cast(self.head_size, tf.float32))
+        sim_score = tf.matmul(q, tf.transpose(k, perm=[0, 1, 3, 2]))
 
         # masking future tokens in decoder self attention 
         if mask is not None:
-            sim_score = tf.where(~mask, sim_score, float('-inf'))
+            sim_score = tf.where(~mask[:, tf.newaxis, :], tf.constant(float('-inf'), dtype=sim_score.dtype), sim_score)
+            # sim_score = tf.where(~mask, sim_score, float('-inf'))
         
         attention = self.softmax(sim_score)
         attention = self.dropout(sim_score)
@@ -54,7 +58,8 @@ class MultiHeadedAttention(tf.keras.Model):
             attention = tf.where(~padding_mask,0.0)
 
         output = tf.matmul(attention,v)
-        output = output.transpose(1,2).reshape(batch_size,-1,self.num_heads*self.head_size)
+        output = tf.transpose(output, [0, 2, 1, 3])
+        output = tf.reshape(output, [batch_size, -1, self.num_heads * self.head_size])
         
         output = self.output_layer(output)
 
@@ -137,9 +142,9 @@ class PositionalEncoding(tf.keras.layers.Layer):
         return tf.cast(pos_encoding, dtype=tf.float32)
 
     def call(self, x):
-        print("X: ", x)
+        # print("X: ", x)
         seq_len = x.shape[1]
-        print("self.pos_encoding: ", self.pos_encoding)
+        # print("self.pos_encoding: ", self.pos_encoding)
         return x + self.pos_encoding[:, :seq_len]
 
 

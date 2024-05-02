@@ -35,7 +35,8 @@ class TransformerEncoder(tf.keras.Model):
         """
         # super().__init__(**kwargs)
         super(TransformerEncoder, self).__init__()
-        self.encoder_layers = tf.keras.Sequential([TransformerEncoderLayer(hidden_size,ff_size,num_heads,dropout) for _ in range (num_layers)])
+        # self.encoder_layers = tf.keras.Sequential([TransformerEncoderLayer(hidden_size,ff_size,num_heads,dropout) for _ in range (num_layers)])
+        self.encoder_layers = [TransformerEncoderLayer(hidden_size,ff_size,num_heads,dropout) for _ in range (num_layers)]
         self.norm = tf.keras.layers.LayerNormalization()
         self.pos_encoding = PositionalEncoding(hidden_size)
         self.emb_dropout = tf.keras.layers.Dropout(emb_dropout)
@@ -61,8 +62,8 @@ class TransformerEncoder(tf.keras.Model):
         # adding dropout
         inputs = self.emb_dropout(inputs)
 
-        for layer in self.layers:
-            x = layer(x,padding)
+        for layer in self.encoder_layers:
+            inputs = layer(inputs, padding)
 
-        norm = self.norm(x)
-        return norm 
+        norm = self.norm(inputs)
+        return norm, None

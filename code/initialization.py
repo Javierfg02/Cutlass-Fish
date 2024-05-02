@@ -119,6 +119,6 @@ def initialize_model(model, cfg: dict, src_padding_idx: int,
     # zero out paddings
     # model.src_embed.lut.weight.data[src_padding_idx].zero_()
     # model.src_embed.lut.weight.data[src_padding_idx].assign(tf.zeros_like(model.src_embed.lut.weight.data[src_padding_idx]))
-    print("WEIGHTS: ", model.src_embed.lut.weights)
+    # print("WEIGHTS: ", model.src_embed.lut.weights)
     # model.src_embed.lut.weights[0].assign(tf.zeros_like(model.src_embed.lut.weights[0]))
 
