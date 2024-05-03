@@ -89,7 +89,8 @@ class Model(tf.keras.Model):
                                                      src_length=src_lengths,
                                                      src_mask=src_mask)
         print("trg_input: ", trg_input)
-        unroll_steps = trg_input.size(1)
+        print("trg_input shape: ", trg_input.shape)
+        unroll_steps = trg_input.shape[1]
 
         # # Add gaussian noise to the target inputs, if in training
         # if (self.gaussian_noise) and (self.training) and (self.out_stds is not None):

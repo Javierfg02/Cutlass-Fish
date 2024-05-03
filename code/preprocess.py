@@ -142,81 +142,87 @@ def make_data_iter(dataset, shuffle=True, train=True):
         np.random.shuffle(dataset)
     return dataset
 
-def map_src_sentences(dataset):
+def pad_trg_data(sequences, batch_size, num_features_per_frame, pad_sequences=True):
+    """
+    Prepares the TensorFlow dataset from raw sequences, reshapes, batches, and optionally pads them.
+
+    Args:
+        sequences (list of tf.Tensor): List of 1D tensors containing the raw data.
+        num_features_per_frame (int): Number of features each frame should have.
+        batch_size (int): Number of sequences per batch.
+        pad_sequences (bool): If True, pad sequences to the longest in the batch.
+
+    Returns:
+        tf.data.Dataset: A TensorFlow dataset ready for model training.
+    """
+    # Create a TensorFlow dataset from the list of tensors
+    dataset = tf.data.Dataset.from_tensor_slices(sequences)
+
+    # Reshape and batch the dataset
+    if pad_sequences:
+        # Pads the sequences to the maximum length of any sequence in the batch
+        padded_shapes = (tf.TensorShape([None, num_features_per_frame]))  # 'None' allows for variable sequence lengths
+        dataset = dataset.map(lambda x: tf.reshape(x, (-1, num_features_per_frame))).padded_batch(batch_size, padded_shapes=padded_shapes)
+    else:
+        # Map each sequence to reshape it and then batch
+        dataset = dataset.map(lambda x: tf.reshape(x, (-1, num_features_per_frame))).batch(batch_size)
+
+    return dataset
+
+# def calculate_max_length(dataset):
+    # max_length = 0
+    # for example in dataset:
+    #     trg_length = len(example.trg)
+    #     if trg_length > max_length:
+    #         max_length = trg_length
+    # return max_length
+
+def map_src_sentences(dataset, padded_trgs):
     """
     Converted Dataset to a list of Examples, but with src containing the mappings
     from words to indices in a given sentence
     
     Builds the 2 tensors in src fields for both correspondings with padding and their corresponding lengths before padding.
     """
-    new_dataset = []
-    tokenized_sentences = []
-    len_unpadded_seq = []
+
+    new_dataset, tokenized_sentences, len_unpadded_seq, all_padded_trgs = [], [], [], []
+    
+    for trg in padded_trgs:
+        all_padded_trgs.append(trg)
+
     # First loop to get max length for all src fields in dataset (for padding)
     for example in dataset:
         indexed_tokens = example.src
         # print("INDEXED TOKENS: ", indexed_tokens)
         tokenized_sentences.append(indexed_tokens)
-    
-    for example in dataset:
+        print("TARGET: ", example.trg)
+        # example_trgs.append(example.trg)
+    # print("example_trgs: ", example_trgs)
+    # for example in dataset:   
+    for i in range(len(dataset)):
+        example = dataset[i]
         len_unpadded_seq.append(len(indexed_tokens))
         len_unpadded_seq_tensor = tf.convert_to_tensor(len_unpadded_seq, dtype=tf.int32)
         # print("len_unpadded_seq: ", len_unpadded_seq)
         # print("tokenized_sentences: ", tokenized_sentences)
         max_length = max(len(seq) for seq in tokenized_sentences)
+
         # Pad sequences to the maximum length
         padded_sequences = pad_sequences(tokenized_sentences, maxlen=max_length, padding='post')
         padded_sequences_tensor = tf.convert_to_tensor(padded_sequences, dtype=tf.int32)
-
-        # print("Padded sequences tensor: ", padded_sequences_tensor)
+        
         # new_src = padded_sequences_tensor, len_unpadded_seq_tensor
         new_src = padded_sequences_tensor
         # print("NEW SRC: ", new_src)
+        padded_trg = all_padded_trgs[i]
+        # print("padded_trg: ", padded_trg)
         new_example =  Example(
             src=new_src,
-            trg=example.trg,
+            trg=padded_trg,
             file_path=example.file_path
         )
         new_dataset.append(new_example)
-
-    return new_dataset
-
-# def make_data_iter(dataset: Dataset,
-#                    batch_size: int,
-#                    batch_type: str = "sentence",
-#                    train: bool = False,
-#                    shuffle: bool = False) -> Iterator:
-#     """
-#     Returns a torchtext iterator for a torchtext dataset.
-
-#     :param dataset: torchtext dataset containing src and optionally trg
-#     :param batch_size: size of the batches the iterator prepares
-#     :param batch_type: measure batch size by sentence count or by token count
-#     :param train: whether it's training time, when turned off,
-#         bucketing, sorting within batches and shuffling is disabled
-#     :param shuffle: whether to shuffle the data before each epoch
-#         (no effect if set to True for testing)
-#     :return: torchtext iterator
-#     """
-
-#     batch_size_fn = None if batch_type == "token" else None
-
-#     if train:
-#         # optionally shuffle and sort during training
-#         data_iter = data.BucketIterator(
-#             repeat=False, sort=False, dataset=dataset,
-#             batch_size=batch_size, batch_size_fn=batch_size_fn,
-#             train=True, sort_within_batch=True,
-#             sort_key=lambda x: len(x.src), shuffle=shuffle)
-#     else:
-#         # don't sort/shuffle for validation/inference
-#         data_iter = data.BucketIterator(
-#             repeat=False, dataset=dataset,
-#             batch_size=batch_size, batch_size_fn=batch_size_fn,
-#             train=False, sort=False)
-
-#     return data_iter
-
+        return new_dataset
         
 class Example:
     def __init__(self, src, trg, file_path=None):

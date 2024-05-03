@@ -53,9 +53,10 @@ class MultiHeadedAttention(tf.keras.Model):
         
         attention = self.softmax(sim_score)
         attention = self.dropout(sim_score)
-
+        print("ATTENTION: ", attention.shape)
         if padding_mask is not None:
-            attention = tf.where(~padding_mask,0.0)
+            print("padding mask_dec: ", padding_mask.shape)
+            attention = tf.where(~padding_mask,0.0,attention)
 
         output = tf.matmul(attention,v)
         output = tf.transpose(output, [0, 2, 1, 3])
@@ -142,9 +143,11 @@ class PositionalEncoding(tf.keras.layers.Layer):
         return tf.cast(pos_encoding, dtype=tf.float32)
 
     def call(self, x):
+        # print("X shape: ", x.shape)
         # print("X: ", x)
+
         seq_len = x.shape[1]
-        # print("self.pos_encoding: ", self.pos_encoding)
+        # print("self.pos_encoding: ", self.pos_encoding.shape)
         return x + self.pos_encoding[:, :seq_len]
 
 

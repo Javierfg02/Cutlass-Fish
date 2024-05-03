@@ -61,8 +61,10 @@ class TransformerDecoder(Decoder):
 
         # create num_layers decoder layers and put them in a list
     
-        self.decoder_layers = tf.keras.Sequential([TransformerDecoderLayer(hidden_size,
-                                                                   ff_size,num_heads,dropout,decoder_trg_trg_) for _ in range (num_layers)])
+        # self.decoder_layers = tf.keras.Sequential([TransformerDecoderLayer(hidden_size,
+                                                                #    ff_size,num_heads,dropout,decoder_trg_trg_) for _ in range (num_layers)])
+        self.decoder_layers =[TransformerDecoderLayer(hidden_size,
+                                                                   ff_size,num_heads,dropout,decoder_trg_trg_) for _ in range (num_layers)]
 
         self.pe = PositionalEncoding(hidden_size)
         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
@@ -97,12 +99,20 @@ class TransformerDecoder(Decoder):
         x = self.emb_dropout(x)
 
         padding_mask = trg_mask
+        print("trg_mask: ",trg_mask.shape)
         # Create subsequent mask for decoding
-        sub_mask = subsequent_mask(
-            trg_embed.size(1)).type_as(trg_mask)
+        print("to find type: ",  subsequent_mask(
+            trg_embed.shape[1]))
+        trg_size = trg_embed.shape[1]  # Get the size from the second dimension of trg_embed
+        sub_mask = subsequent_mask(trg_size)
+        sub_mask = tf.cast(sub_mask, dtype=trg_mask.dtype)
+        # sub_mask = subsequent_mask(
+            # trg_embed.shape[1]).type_as(trg_mask)
+
+            # trg_embed.size(1)).type_as(trg_mask)
 
         # Apply each layer to the input
-        for layer in self.layers:
+        for layer in self.decoder_layers:
             x = layer(x=x, memory=encoder_output,
                       src_mask=src_mask, trg_mask=sub_mask, padding_mask=padding_mask)
 

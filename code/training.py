@@ -14,7 +14,7 @@ from helpers import load_config, log_cfg, load_checkpoint, make_model_dir, \
     make_logger, set_seed, symlink_update, ConfigurationError, get_latest_checkpoint
 from prediction import validate_on_data 
 from loss import RegLoss
-from preprocess import create_src, create_trg, create_examples, make_data_iter, map_src_sentences
+from preprocess import create_src, create_trg, create_examples, make_data_iter, map_src_sentences, pad_trg_data
 from vocabulary import Vocabulary
 import torch
 from torch import Tensor
@@ -167,13 +167,24 @@ class TrainManager:
 
     def train_and_validate(self, train_data, valid_data):
         #! Figure out make_data_iter
-        mapped_dataset = map_src_sentences(dataset=train_data)
-        # for ex in mapped_dataset:
-        #     print("OUTPUT MAPPED: ", ex.src)
+        # print("FIRST TRAIN DATA TRG LEN: ", len(train_data[0].trg))
+        # print("FIRST TRAIN DATA TRG 0: ", train_data[0].trg[0])
+        # print("FIRST TRAIN DATA TRG 0 SHAPE: ", train_data[0].trg[0].shape)
+        trg_size = 412 # TODO: hard coding for now
+        padded_trgs = pad_trg_data(sequences=[train_data[0].trg], batch_size=self.batch_size, num_features_per_frame=trg_size)
+        mapped_dataset = map_src_sentences(dataset=train_data, padded_trgs=padded_trgs)
+
+        new_batch = []
+        # for batch in padded_trgs:
+            # print("PADDED TRG DATA shape:", batch.shape)
+            # print("PADDED TRG DATA data:\n", batch.numpy())
+
+        for batch in new_batch:
+            print("UPDATED TRG: ", batch.trg.shape)
         train_iter = make_data_iter(dataset=mapped_dataset, train=True, shuffle=self.shuffle)
-        # for ex in train_iter:
-        #     print("OUTPUT TRAIN ITER: ", ex.src)
-        # train_iter = make_data_iter(dataset=train_data, train=True, shuffle=self.shuffle)
+        # for batch in train_iter:
+            # print("AFTER TRAIN DATA TRG 0: ", batch.trg)
+            # print("AFTER TRAIN DATA TRG 0 SHAPE: ", batch.trg[0].shape)
         # src_dataset, trg_dataset, filepath = make_data_iter(dataset=train_data, batch_size=self.batch_size, pad_token_id=PAD_TOKEN_ID, train=True, shuffle=self.shuffle)
         val_step = 0
         if self.gaussian_noise:
@@ -196,10 +207,7 @@ class TrainManager:
             # train_iter = zip(src_dataset, trg_dataset)
             for batch in iter(train_iter):
                 # self.model.train() 
-                # print("trg: ", batch.trg)
-                # print("trg 0: ", batch.trg[0] )
-                # print("trg 0 0: ", batch.trg[0][0])
-                # print("pre: ", batch.src)
+
                 batch = Batch(torch_batch=batch, pad_index=self.pad_index, model=self.model)
                 update = count == 0
 

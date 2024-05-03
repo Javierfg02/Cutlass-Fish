@@ -49,8 +49,11 @@ class Batch:
                     future_trg = future_trg.write(i, self.trg[:, i:-(self.future_prediction - i), :-1])
                 self.trg = tf.concat([future_trg.concat(), self.trg[:, :-self.future_prediction, -1:]], axis=2)
                 self.trg_input = self.trg_input[:, :-self.future_prediction, :]
-
-            trg_mask = tf.expand_dims(tf.not_equal(self.trg_input, self.target_pad), axis=1)
+            
+            print("TARGET INPUT: ", self.trg_input)
+            trg_mask = tf.expand_dims(self.trg_input != self.target_pad, axis=1)
+            print("MASKKKKKK: ", trg_mask)
+            # trg_mask = tf.expand_dims(tf.not_equal(self.trg_input, self.target_pad), axis=1)
             # pad_amount = tf.maximum(0, tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2])
             pad_amount = tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2]
             if pad_amount > 0:
