@@ -60,6 +60,7 @@ def greedy(
 
         # Cut padding mask to required size (of the size of the input)
         padding_mask = trg_mask[:, :, :i+1, :i+1]
+
         # Pad the mask (If required) (To make it square, and used later on correctly)
         pad_amount = tf.shape(padding_mask)[2] - tf.shape(padding_mask)[3]
         padding_mask = tf.equal(tf.pad(padding_mask, [[0, 0], [0, 0], [pad_amount, 0], [0, 0]], mode='SYMMETRIC'), 1)

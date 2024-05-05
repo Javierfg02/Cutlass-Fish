@@ -155,27 +155,18 @@ def pad_trg_data(sequences, batch_size, num_features_per_frame, pad_sequences=Tr
     Returns:
         tf.data.Dataset: A TensorFlow dataset ready for model training.
     """
+    print("dataset: ", sequences)
     # Create a TensorFlow dataset from the list of tensors
     dataset = tf.data.Dataset.from_tensor_slices(sequences)
 
     # Reshape and batch the dataset
-    if pad_sequences:
-        # Pads the sequences to the maximum length of any sequence in the batch
-        padded_shapes = (tf.TensorShape([None, num_features_per_frame]))  # 'None' allows for variable sequence lengths
-        dataset = dataset.map(lambda x: tf.reshape(x, (-1, num_features_per_frame))).padded_batch(batch_size, padded_shapes=padded_shapes)
-    else:
-        # Map each sequence to reshape it and then batch
-        dataset = dataset.map(lambda x: tf.reshape(x, (-1, num_features_per_frame))).batch(batch_size)
-
+    # Pads the sequences to the maximum length of any sequence in the batch
+    padded_shapes = (tf.TensorShape([None, num_features_per_frame]))  # 'None' allows for variable sequence lengths
+    print("padded shapes: ", padded_shapes)
+    dataset = dataset.map(lambda x: tf.reshape(x, (-1, num_features_per_frame))).padded_batch(batch_size, padded_shapes=padded_shapes)
+    
     return dataset
 
-# def calculate_max_length(dataset):
-    # max_length = 0
-    # for example in dataset:
-    #     trg_length = len(example.trg)
-    #     if trg_length > max_length:
-    #         max_length = trg_length
-    # return max_length
 
 def map_src_sentences(dataset, padded_trgs):
     """

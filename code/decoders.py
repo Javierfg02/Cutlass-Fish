@@ -99,10 +99,8 @@ class TransformerDecoder(Decoder):
         x = self.emb_dropout(x)
 
         padding_mask = trg_mask
-        print("trg_mask: ",trg_mask.shape)
+        print("SUB MASK: ", trg_mask.shape)
         # Create subsequent mask for decoding
-        print("to find type: ",  subsequent_mask(
-            trg_embed.shape[1]))
         trg_size = trg_embed.shape[1]  # Get the size from the second dimension of trg_embed
         sub_mask = subsequent_mask(trg_size)
         sub_mask = tf.cast(sub_mask, dtype=trg_mask.dtype)

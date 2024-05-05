@@ -27,7 +27,6 @@ class MultiHeadedAttention(tf.keras.Model):
     def call(self,k,v,q,mask= None,padding_mask = None):
 
         batch_size = k.shape[0]
-
         # extracting the keys, queries and values 
         k = self.k_layer(k)
         q = self.q_layer(q)
@@ -54,6 +53,7 @@ class MultiHeadedAttention(tf.keras.Model):
         attention = self.softmax(sim_score)
         attention = self.dropout(sim_score)
         print("ATTENTION: ", attention.shape)
+
         if padding_mask is not None:
             print("padding mask_dec: ", padding_mask.shape)
             attention = tf.where(~padding_mask,0.0,attention)

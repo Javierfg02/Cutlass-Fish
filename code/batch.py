@@ -1,5 +1,6 @@
 import tensorflow as tf
 from constants import TARGET_PAD
+from preprocess import adjust_mask
 
 class Batch:
     """
@@ -49,13 +50,17 @@ class Batch:
                     future_trg = future_trg.write(i, self.trg[:, i:-(self.future_prediction - i), :-1])
                 self.trg = tf.concat([future_trg.concat(), self.trg[:, :-self.future_prediction, -1:]], axis=2)
                 self.trg_input = self.trg_input[:, :-self.future_prediction, :]
-            
             print("TARGET INPUT: ", self.trg_input)
+
+            # print("TARGET INPUT: ", self.trg_input.shape)
             trg_mask = tf.expand_dims(self.trg_input != self.target_pad, axis=1)
-            print("MASKKKKKK: ", trg_mask)
+            print("MASKKKKKK: ", trg_mask.shape)
+    
             # trg_mask = tf.expand_dims(tf.not_equal(self.trg_input, self.target_pad), axis=1)
             # pad_amount = tf.maximum(0, tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2])
-            pad_amount = tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2]
+            #pad_amount = tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2]
+            pad_amount =  self.trg_input.shape[1] - self.trg_input.shape[2]
+            print('pad amounttt', pad_amount)
             if pad_amount > 0:
                 self.trg_mask = tf.equal(tf.pad(trg_mask, [[0, 0], [0, 0], [0, pad_amount], [0, 0]], mode='CONSTANT', constant_values=False), True)
             else:
