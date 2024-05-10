@@ -5,30 +5,51 @@ import tensorflow as tf
 from helpers import bpe_postprocess, load_config, get_latest_checkpoint, calculate_dtw
 from model import build_model
 from batch import Batch
-# from data import load_data, make_data_iter
 from preprocess import make_data_iter
 from constants import UNK_TOKEN, PAD_TOKEN, EOS_TOKEN
 
-def validate_on_data(model,
-                     data,
-                     batch_size,
-                     max_output_length,
-                     eval_metric,
-                     loss_function=None,
-                     batch_type="sentence",
-                     type="val",
-                     BT_model=None):
+def preprocess_example(example):
+    # Implement conversion of preprocess.Example to tensors
+    # Example: Assuming `example` has attributes like src, trg, etc.
+    src_tensor = tf.convert_to_tensor(example.src)  # Convert src to tensor
+    trg_tensor = tf.convert_to_tensor(example.trg)  # Convert trg to tensor
 
-    # Create TensorFlow dataset and iterator
-    valid_dataset = tf.data.Dataset.from_tensor_slices(data)
+    return (src_tensor, trg_tensor)  # Return tuple of tensors
+
+def validate_on_data(model, data, batch_size, max_output_length, eval_metric, loss_function=None, batch_type="sentence", type="val", BT_model=None):
+    # Preprocess data to create a list of TensorFlow-compatible tuples
+    processed_data = [preprocess_example(example) for example in data]
+
+    # Create TensorFlow dataset from processed_data
+    valid_dataset = tf.data.Dataset.from_generator(lambda: processed_data, output_signature=(
+        tf.TensorSpec(shape=(), dtype=tf.int32),  # Example: src_tensor shape and dtype
+        tf.TensorSpec(shape=(), dtype=tf.int32)   # Example: trg_tensor shape and dtype
+    ))
     valid_dataset = valid_dataset.batch(batch_size)
-    # valid_iter = iter(valid_dataset) # TODO: NOT A FUNC?
-    valid_iter = make_data_iter(
-        dataset=data, batch_size=batch_size, batch_type=batch_type,
-        shuffle=True, train=False)
 
-    pad_index = model.src_vocab.index(PAD_TOKEN)
-    model.eval()
+# def validate_on_data(model,
+#                      data,
+#                      batch_size,
+#                      max_output_length,
+#                      eval_metric,
+#                      loss_function=None,
+#                      batch_type="sentence",
+#                      type="val",
+#                      BT_model=None):
+
+#     # Create TensorFlow dataset and iterator
+#     valid_dataset = tf.data.Dataset.from_tensor_slices(data)
+    # valid_dataset = valid_dataset.batch(batch_size)
+    # valid_iter = iter(valid_dataset) # TODO: NOT A FUNC?
+
+    # def make_data_iter(dataset, shuffle=True, train=True):
+
+    valid_iter = make_data_iter(dataset=data, shuffle=True, train=False)
+
+    # pad_index = model.src_vocab.index(PAD_TOKEN)
+    pad_index = model.src_vocab.stoi[PAD_TOKEN]
+
+    # model.eval()
 
     valid_hypotheses = []
     valid_references = []

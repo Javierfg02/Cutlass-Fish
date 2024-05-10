@@ -34,8 +34,7 @@ def make_model_dir(model_dir: str, overwrite=False, model_continue=False) -> str
     if os.path.isdir(model_dir):
         if model_continue:
             return model_dir
-        if not overwrite:
-            raise FileExistsError("Model directory exists and overwriting is disabled.")
+
         for file in os.listdir(model_dir):
             file_path = os.path.join(model_dir, file)
             if os.path.isfile(file_path):

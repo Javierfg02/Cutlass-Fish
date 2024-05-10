@@ -4,7 +4,7 @@ import shutil
 import os
 import queue
 import numpy as np
-
+import contextlib
 import tensorflow as tf
 from tensorflow import keras
 from model import Model
@@ -16,10 +16,7 @@ from prediction import validate_on_data
 from loss import RegLoss
 from preprocess import create_src, create_trg, create_examples, make_data_iter, map_src_sentences, pad_trg_data
 from vocabulary import Vocabulary
-import torch
-from torch import Tensor
-from torch.utils.tensorboard import SummaryWriter
-from torchtext.data import Dataset
+
 from builders import build_optimizer, build_gradient_clipper
 # from builders import build_optimizer, build_scheduler, build_gradient_clipper
 from plot_videos import plot_video, alter_DTW_timing
@@ -30,7 +27,8 @@ class TrainManager:
     def __init__(self, model:Model, config, test=False):
         train_config = config["training"]
         model_dir = train_config["model_dir"]
-        model_continue = train_config.get("continue", True)
+        # model_continue = train_config.get("continue", True)
+        model_continue = False
         if not os.path.isdir(model_dir):
             model_continue = False
         if test:
@@ -110,7 +108,7 @@ class TrainManager:
         self.future_prediction = config["model"].get("future_prediction", 0)
         if self.future_prediction != 0:
             frames_predicted = [i for i in range(self.future_prediction)]
-            self.logger.info("Future prediction. Frames predicted: %s", frames_predicted)
+            ("Future prediction. Frames predicted: %s", frames_predicted)
 
     def _save_checkpoint(self, type="every"):
         model_path = "{}/{}_{}.ckpt".format(self.model_dir, self.steps, type)
@@ -168,21 +166,23 @@ class TrainManager:
     def train_and_validate(self, train_data, valid_data):
         #! Figure out make_data_iter
         # print("FIRST TRAIN DATA TRG LEN: ", len(train_data[0].trg))
-        print("FIRST TRAIN DATA TRG 0: ", train_data[0].trg[0])
-        print("FIRST TRAIN DATA TRG 0 SHAPE: ", train_data[0].trg[0].shape)
+        # print("FIRST TRAIN DATA TRG 0: ", len(train_data[0].src))
+        # print("FIRST TRAIN DATA TRG 0 SHAPE: ", train_data[0].src[0])
         trg_size = 412 # TODO: hard coding for now
         padded_trgs = pad_trg_data(sequences=[train_data[0].trg], batch_size=self.batch_size, num_features_per_frame=trg_size)
         #print("padded_trgs", padded_trgs.shape)
+        #print("td",train_data)
         mapped_dataset = map_src_sentences(dataset=train_data, padded_trgs=padded_trgs)
+
 
         # new_batch = []
         for batch in padded_trgs:
-            print("PADDED TRG DATA shape:", batch.shape)
-            print("PADDED TRG DATA data:\n", batch.numpy())
+            # print("PADDED TRG DATA shape:", batch.shape)
+            # print("PADDED TRG DATA data:\n", batch.numpy())
 
         # for batch in new_batch:
         #     print("UPDATED TRG: ", batch.trg.shape)
-        train_iter = make_data_iter(dataset=mapped_dataset, train=True, shuffle=self.shuffle)
+            train_iter = make_data_iter(dataset=mapped_dataset, train=True, shuffle=self.shuffle)
         # for batch in train_iter:
             # print("AFTER TRAIN DATA TRG 0: ", batch.trg)
             # print("AFTER TRAIN DATA TRG 0 SHAPE: ", batch.trg[0].shape)
@@ -213,13 +213,8 @@ class TrainManager:
                 update = count == 0
 
                 # print("postbatch: ", batch.src)
-                batch_loss, noise = self._train_batch(batch, update=update)
-                if self.gaussian_noise:
-                    if self.future_prediction != 0:
-                        all_epoch_noise.append(noise.reshape(-1, self.model.out_trg_size // self.future_prediction))
-                    else:
-                        all_epoch_noise.append(noise.reshape(-1, self.model.out_trg_size))
-
+                batch_loss = self._train_batch(batch, update=update)
+            
                 with self.tb_writer.as_default():
                     tf.summary.scalar("train/train_batch_loss", batch_loss, step=self.steps)
 
@@ -227,8 +222,7 @@ class TrainManager:
                 count -= 1
                 epoch_loss += batch_loss.numpy()
 
-                # if self.scheduler is not None and self.scheduler_step_at == "step" and update:
-                #     self.scheduler.step()
+            
 
                 if self.steps % self.logging_freq == 0 and update:
                     elapsed = time.time() - start - total_valid_duration
@@ -245,68 +239,69 @@ class TrainManager:
 
                 if self.steps % self.validation_freq == 0 and update:
                     valid_start_time = time.time()
-                    valid_score, valid_loss, valid_references, valid_hypotheses, valid_inputs, all_dtw_scores, valid_file_paths = \
-                        validate_on_data(
-                            model=self.model,
-                            data=valid_data,
-                            batch_size=self.eval_batch_size,
-                            max_output_length=self.max_output_length,
-                            loss_function=self.loss,
-                            batch_type=self.eval_batch_type,
-                            type="val",
-                        )
+                    # valid_score, valid_loss, valid_references, valid_hypotheses, valid_inputs, all_dtw_scores, valid_file_paths = \
+                    #     # validate_on_data(
+                        #     model=self.model,
+                        #     data=valid_data,
+                        #     batch_size=self.eval_batch_size,
+                        #     eval_metric=self.eval_metric,
+                        #     max_output_length=self.max_output_length,
+                        #     loss_function=self.loss,
+                        #     batch_type=self.eval_batch_type,
+                        #     type="val",
+                        # )
 
-                    val_step += 1
+                    # val_step += 1
 
-                    with self.tb_writer.as_default():
-                        tf.summary.scalar("valid/valid_loss", valid_loss, step=self.steps)
-                        tf.summary.scalar("valid/valid_score", valid_score, step=self.steps)
+                    # with self.tb_writer.as_default():
+                    #     tf.summary.scalar("valid/valid_loss", valid_loss, step=self.steps)
+                    #     tf.summary.scalar("valid/valid_score", valid_score, step=self.steps)
 
-                    ckpt_score = valid_loss if self.early_stopping_metric == "loss" else valid_score
+                    # ckpt_score = valid_loss if self.early_stopping_metric == "loss" else valid_score
 
-                    new_best = False
-                    self.best = False
-                    if self.is_best(ckpt_score):
-                        self.best = True
-                        self.best_ckpt_score = ckpt_score
-                        self.best_ckpt_iteration = self.steps
-                        self.logger.info(
-                            'New best validation result [%s]!',
-                            self.early_stopping_metric)
-                        if self.ckpt_queue.maxsize > 0:
-                            self.logger.info("Saving new checkpoint.")
-                            new_best = True
-                            self._save_checkpoint(type="best")
+                    # new_best = False
+                    # self.best = False
+                    # if self.is_best(ckpt_score):
+                    #     self.best = True
+                    #     self.best_ckpt_score = ckpt_score
+                    #     self.best_ckpt_iteration = self.steps
+                    #     self.logger.info(
+                    #         'New best validation result [%s]!',
+                    #         self.early_stopping_metric)
+                    #     if self.ckpt_queue.maxsize > 0:
+                    #         self.logger.info("Saving new checkpoint.")
+                    #         new_best = True
+                    #         self._save_checkpoint(type="best")
 
-                        display = list(range(0, len(valid_hypotheses), int(np.ceil(len(valid_hypotheses) / 13.15))))
-                        self.produce_validation_video(
-                            output_joints=valid_hypotheses,
-                            inputs=valid_inputs,
-                            references=valid_references,
-                            model_dir=self.model_dir,
-                            steps=self.steps,
-                            display=display,
-                            type="val_inf",
-                            file_paths=valid_file_paths,
-                        )
+                    #     display = list(range(0, len(valid_hypotheses), int(np.ceil(len(valid_hypotheses) / 13.15))))
+                    #     self.produce_validation_video(
+                    #         output_joints=valid_hypotheses,
+                    #         inputs=valid_inputs,
+                    #         references=valid_references,
+                    #         model_dir=self.model_dir,
+                    #         steps=self.steps,
+                    #         display=display,
+                    #         type="val_inf",
+                    #         file_paths=valid_file_paths,
+                    #     )
 
-                    self._save_checkpoint(type="every")
+                    # self._save_checkpoint(type="every")
 
-                    # if self.scheduler is not None and self.scheduler_step_at == "validation":
-                    #     self.scheduler.step(ckpt_score)
+                    # # if self.scheduler is not None and self.scheduler_step_at == "validation":
+                    # #     self.scheduler.step(ckpt_score)
 
-                    self._add_report(
-                        valid_score=valid_score, valid_loss=valid_loss,
-                        eval_metric=self.eval_metric,
-                        new_best=new_best, report_type="val",)
+                    # self._add_report(
+                    #     valid_score=valid_score, valid_loss=valid_loss,
+                    #     eval_metric=self.eval_metric,
+                    #     new_best=new_best, report_type="val",)
 
-                    valid_duration = time.time() - valid_start_time
-                    total_valid_duration += valid_duration
-                    self.logger.info(
-                        'Validation result at epoch %3d, step %8d: Val DTW Score: %6.2f, '
-                        'loss: %8.4f,  duration: %.4fs',
-                        epoch_no+1, self.steps, valid_score,
-                        valid_loss, valid_duration)
+                    # valid_duration = time.time() - valid_start_time
+                    # total_valid_duration += valid_duration
+                    # self.logger.info(
+                    #     'Validation result at epoch %3d, step %8d: Val DTW Score: %6.2f, '
+                    #     'loss: %8.4f,  duration: %.4fs',
+                    #     epoch_no+1, self.steps, valid_score,
+                    #     valid_loss, valid_duration)
 
                 if self.stop:
                     break
@@ -323,7 +318,8 @@ class TrainManager:
         self.logger.info('Best validation result at step %8d: %6.2f %s.',
                          self.best_ckpt_iteration, self.best_ckpt_score,
                          self.early_stopping_metric)
-
+        print("finished_tr")
+        #quit()
         self.tb_writer.close()  # close Tensorboard writer
 
     def produce_validation_video(self, output_joints, inputs, references, display, model_dir, type, steps="", file_paths=None):
@@ -365,25 +361,77 @@ class TrainManager:
                            skip_frames=self.skip_frames,
                            sequence_ID=sequence_ID)
 
-    def _train_batch(self, batch, update=True):
-        batch_loss, noise = self.model.get_loss_for_batch(batch, loss_function=self.loss)
-        normalizer = batch.nseqs if self.normalization == "batch" else batch.ntokens
-        norm_batch_loss = batch_loss / normalizer
-        norm_batch_multiply = norm_batch_loss / self.batch_multiplier
+    # def _train_batch(self, batch, update=True):
+    #     batch_loss = self.model.get_loss_for_batch(batch, loss_function=self.loss)
+    #     with tf.GradientTape() as tape:
+    #         gradients = tape.gradient(batch_loss, self.model.trainable_variables)
 
+
+    #     # if self.clip_grad_fun is not None:
+    #     #     self.clip_grad_fun(gradients, self.model.trainable_variables)
+
+    #     if update:
+    #         self.optimizer.step()
+
+    #     #     with open(os.devnull, 'w') as null_file:
+    #     #         with contextlib.redirect_stdout(null_file):
+    #     #             self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+    #         self.steps += 1
+    #     print("hey")
+    #     self.total_tokens += batch.ntokens
+
+    #     return batch_loss
+    def _train_batch(self, batch: Batch, update: bool = True) -> tf.Tensor:
         with tf.GradientTape() as tape:
-            gradients = tape.gradient(norm_batch_multiply, self.model.trainable_variables)
+            # Get loss from this batch
+            batch_loss = self.model.get_loss_for_batch(
+                batch=batch, loss_function=self.loss)
 
-        # if self.clip_grad_fun is not None:
-        #     self.clip_grad_fun(gradients, self.model.trainable_variables)
+            # Normalize batch loss
+            # if self.normalization == "batch":
+            #     normalizer = tf.cast(batch.nseqs, dtype=tf.float32)
+            # elif self.normalization == "tokens":
+            #     normalizer = tf.cast(batch.ntokens, dtype=tf.float32)
+            # else:
+            #     raise NotImplementedError("Only normalize by 'batch' or 'tokens'")
+
+            # norm_batch_loss = batch_loss / normalizer
+            norm_batch_loss = batch_loss
+            # Division needed since tape.gradient sums the gradients until updated
+            norm_batch_multiply = norm_batch_loss / self.batch_multiplier
+
+        # Compute gradients
+        gradients = tape.gradient(norm_batch_multiply, self.model.trainable_variables)
+
+
+        # Define a lambda function for gradient clipping
+        # This lambda function takes gradients (grads) as input and returns a clipping threshold value
+        clip_value_fn = lambda grads: tf.reduce_max([tf.norm(g) for g in grads])  # Adjust as needed
+
+        # Assign clip_grad_fun to the lambda function
+        self.clip_grad_fun = clip_value_fn
+
+        # Now use self.clip_grad_fun appropriately in _train_batch method
+        if self.clip_grad_fun is not None:
+            # Call self.clip_grad_fun with gradients (grads) to get the clipping value
+            clip_value = self.clip_grad_fun(gradients)
+
+            # Use the clipping value in tf.clip_by_value
+            gradients = [tf.clip_by_value(grad, clip_value_min=-clip_value, clip_value_max=clip_value)
+                        if grad is not None else grad for grad in gradients]
 
         if update:
+            # Apply gradients
             self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+
+            # Increment step counter
             self.steps += 1
 
+        # Increment token counter
         self.total_tokens += batch.ntokens
 
-        return norm_batch_loss, noise
+        return norm_batch_loss
+
 
     def _add_report(self, valid_score, valid_loss, eval_metric, new_best=False, report_type="val"):
         current_lr = -1
@@ -424,10 +472,10 @@ def train(cfg_file, ckpt=None):
     src = create_src()
     train_data = create_examples(src, trg)
     # print("FIRST TRAIN DATA KEYS: ", train_data[0].__dict__.keys())
-    print("FIRST TRAIN DATA SRC: ", train_data[0].src)
-    print("TRAIN DATA TRG: ", train_data[0].trg)
-    print("FIRST TRAIN DATA TRG LEN: ", len(train_data[0].trg))
-    print("FIRST TRAIN DATA TRG 0 SHAPE: ", train_data[0].trg[0].shape)
+    # print("FIRST TRAIN DATA SRC: ", train_data[0].src)
+    # print("TRAIN DATA TRG: ", train_data[0].trg)
+    # print("FIRST TRAIN DATA TRG LEN: ", len(train_data[0].trg))
+    # print("FIRST TRAIN DATA TRG 0 SHAPE: ", train_data[0].trg[0].shape)
 
     # print("TRAIN DATA TRG: ", train_data[1])
     dev_data = create_examples(src, trg) #! at the moment, validation and training datasets are the same - should not be
@@ -447,13 +495,14 @@ def train(cfg_file, ckpt=None):
     log_cfg(cfg, trainer.logger)
     # train_data = torch.Tensor(train_data)
     # train_data = Dataset(train_data)
-    print("train data: ", train_data)
     trainer.train_and_validate(train_data, dev_data)
+    print("training_finished!!!!!!!!!!!!!!!")
     test(cfg_file)
 
 def test(cfg_file, ckpt=None):
     cfg = load_config(cfg_file)
     model_dir = cfg["training"]["model_dir"]
+    ckpt = None
     if ckpt is None:
         ckpt = get_latest_checkpoint(model_dir, post_fix="_best")
         if ckpt is None:

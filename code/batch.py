@@ -1,6 +1,5 @@
 import tensorflow as tf
 from constants import TARGET_PAD
-from preprocess import adjust_mask
 
 class Batch:
     """
@@ -20,7 +19,7 @@ class Batch:
         :param use_cuda:
         """
         self.src, self.src_lengths = torch_batch.src, len(torch_batch.src)
-        # print("torch batch src: ", self.src)
+        #print("torch batch src: ", self.src)
         self.src_mask = tf.expand_dims(tf.not_equal(self.src, pad_index), axis=1)
         self.nseqs = tf.shape(self.src)[0]
         self.trg_input = None
@@ -36,6 +35,7 @@ class Batch:
 
         if hasattr(torch_batch, "trg"):
             trg = torch_batch.trg
+            #print("trg_shape",trg.shape[0])
             trg_lengths = trg.shape[1]
             self.trg_input = tf.identity(trg[:, :-1])
             self.trg_lengths = trg_lengths
@@ -50,17 +50,17 @@ class Batch:
                     future_trg = future_trg.write(i, self.trg[:, i:-(self.future_prediction - i), :-1])
                 self.trg = tf.concat([future_trg.concat(), self.trg[:, :-self.future_prediction, -1:]], axis=2)
                 self.trg_input = self.trg_input[:, :-self.future_prediction, :]
-            print("TARGET INPUT: ", self.trg_input)
+            #print("TARGET INPUT: ", self.trg_input)
 
             # print("TARGET INPUT: ", self.trg_input.shape)
             trg_mask = tf.expand_dims(self.trg_input != self.target_pad, axis=1)
-            print("MASKKKKKK: ", trg_mask.shape)
+            #print("MASKKKKKK: ", trg_mask.shape)
     
             # trg_mask = tf.expand_dims(tf.not_equal(self.trg_input, self.target_pad), axis=1)
             # pad_amount = tf.maximum(0, tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2])
             #pad_amount = tf.shape(self.trg_input)[1] - tf.shape(trg_mask)[2]
             pad_amount =  self.trg_input.shape[1] - self.trg_input.shape[2]
-            print('pad amounttt', pad_amount)
+            #print('pad amounttt', pad_amount)
             if pad_amount > 0:
                 self.trg_mask = tf.equal(tf.pad(trg_mask, [[0, 0], [0, 0], [0, pad_amount], [0, 0]], mode='CONSTANT', constant_values=False), True)
             else:

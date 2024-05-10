@@ -28,8 +28,8 @@ training:
     logging_freq: 250  # After how many steps to log training progress
     eval_metric: "dtw"  # Evaluation metric during training (dtw','bt')
     model_dir: "./Models/Base" # Where the model shall be stored
-    overwrite: False # Flag to overwrite a previous saved model in the model_dir
-    continue: True  # Flag to continue from a previous saved model in the model_dir
+    overwrite: True # Flag to overwrite a previous saved model in the model_dir
+    continue: False  # Flag to continue from a previous saved model in the model_dir
     shuffle: True  # Flag to shuffle the data during training
     use_cuda: False  # Flag to use GPU cuda capabilities
     max_output_length: 420 # Max Output Length

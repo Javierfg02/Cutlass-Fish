@@ -27,5 +27,6 @@ def print_rouge(hypotheses, references, all=False):
     rougeStr = "Rouge: " + str(rouge_score)
 
     logger.info(rougeStr)
-    print(rougeStr)
+    #print(rougeStr)
+
 

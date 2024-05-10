@@ -21,7 +21,7 @@ class RegLoss(tf.keras.Model):
             self.criterion = tf.keras.losses.MeanSquaredError()
 
         else:
-            print("Loss not found - revert to default L1 loss")
+            #print("Loss not found - revert to default L1 loss")
             self.criterion = tf.keras.losses.MeanAbsoluteError()
 
         model_cfg = cfg["model"]
@@ -32,11 +32,13 @@ class RegLoss(tf.keras.Model):
     # pylint: disable=arguments-differ
     def call(self, preds, targets):
 
-        loss_mask = (targets != self.target_pad)
+       #loss_mask = (targets != self.target_pad)
 
         # Find the masked predictions and targets using loss mask
-        preds_masked = preds * loss_mask
-        targets_masked = targets * loss_mask
+        preds_masked = preds[:,:,:-1]
+        #* loss_mask
+        targets_masked = targets
+        #* loss_mask
 
         # Calculate loss just over the masked predictions
         loss = self.criterion(preds_masked, targets_masked)

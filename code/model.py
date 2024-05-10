@@ -88,8 +88,8 @@ class Model(tf.keras.Model):
         encoder_output, encoder_hidden = self.encode(src=src,
                                                      src_length=src_lengths,
                                                      src_mask=src_mask)
-        print("trg_input: ", trg_input)
-        print("trg_input shape: ", trg_input.shape)
+        #print("trg_input: ", trg_input)
+        #print("trg_input shape: ", trg_input.shape)
         unroll_steps = trg_input.shape[1]
 
         # # Add gaussian noise to the target inputs, if in training
@@ -129,7 +129,7 @@ class Model(tf.keras.Model):
         """
 
         # Ensure src is embedded before passing to encoder
-        print("src to encode: ", src)
+        #"src to encode: ", src)
         src_embedded = self.src_embed(src)
         # Call encoder with keyword arguments
         encode_output = self.encoder(embed=src_embedded, window_size=src_length, padding=src_mask)
@@ -169,10 +169,14 @@ class Model(tf.keras.Model):
             :return: batch_loss: sum of losses over non-pad elements in the batch
             """
         # Forward through the batch input
+      
         skel_out, _ = self.call(src=batch.src, trg_input=batch.trg_input,src_mask=batch.src_mask, src_lengths=batch.src_lengths, trg_mask=batch.trg_mask)
+       
 
         # compute batch loss using skel_out and the batch target
         batch_loss = loss_function(skel_out, batch.trg)
+
+
 
         # # If gaussian noise, find the noise for the next epoch
         # if self.gaussian_noise:
