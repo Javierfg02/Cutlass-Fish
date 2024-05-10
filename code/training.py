@@ -176,13 +176,14 @@ class TrainManager:
 
 
         # new_batch = []
-        for batch in padded_trgs:
+        #for batch in padded_trgs:
             # print("PADDED TRG DATA shape:", batch.shape)
             # print("PADDED TRG DATA data:\n", batch.numpy())
 
         # for batch in new_batch:
         #     print("UPDATED TRG: ", batch.trg.shape)
-            train_iter = make_data_iter(dataset=mapped_dataset, train=True, shuffle=self.shuffle)
+        
+        train_iter = make_data_iter(dataset=mapped_dataset, train=True, shuffle=self.shuffle)
         # for batch in train_iter:
             # print("AFTER TRAIN DATA TRG 0: ", batch.trg)
             # print("AFTER TRAIN DATA TRG 0 SHAPE: ", batch.trg[0].shape)
@@ -237,19 +238,19 @@ class TrainManager:
                     total_valid_duration = 0
                     start_tokens = self.total_tokens
 
-                if self.steps % self.validation_freq == 0 and update:
-                    valid_start_time = time.time()
-                    # valid_score, valid_loss, valid_references, valid_hypotheses, valid_inputs, all_dtw_scores, valid_file_paths = \
-                    #     # validate_on_data(
-                        #     model=self.model,
-                        #     data=valid_data,
-                        #     batch_size=self.eval_batch_size,
-                        #     eval_metric=self.eval_metric,
-                        #     max_output_length=self.max_output_length,
-                        #     loss_function=self.loss,
-                        #     batch_type=self.eval_batch_type,
-                        #     type="val",
-                        # )
+                # if self.steps % self.validation_freq == 0 and update:
+                #     valid_start_time = time.time()
+                #     valid_score, valid_loss, valid_references, valid_hypotheses, valid_inputs, all_dtw_scores, valid_file_paths = \
+                #         validate_on_data(
+                #             model=self.model,
+                #             data=valid_data,
+                #             batch_size=self.eval_batch_size,
+                #             eval_metric=self.eval_metric,
+                #             max_output_length=self.max_output_length,
+                #             loss_function=self.loss,
+                #             batch_type=self.eval_batch_type,
+                #             type="val",
+                #         )
 
                     # val_step += 1
 
@@ -315,9 +316,9 @@ class TrainManager:
                              epoch_loss)
         else:
             self.logger.info('Training ended after %3d epochs.', epoch_no+1)
-        self.logger.info('Best validation result at step %8d: %6.2f %s.',
-                         self.best_ckpt_iteration, self.best_ckpt_score,
-                         self.early_stopping_metric)
+        # self.logger.info('Best validation result at step %8d: %6.2f %s.',
+        #                  self.best_ckpt_iteration, self.best_ckpt_score,
+        #                  self.early_stopping_metric)
         print("finished_tr")
         #quit()
         self.tb_writer.close()  # close Tensorboard writer
@@ -513,7 +514,7 @@ def test(cfg_file, ckpt=None):
     use_cuda = cfg["training"].get("use_cuda", False)
     eval_metric = cfg["training"]["eval_metric"]
     max_output_length = cfg["training"].get("max_output_length", None)
-    # train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg) #! Again, adapt for our data
+    train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg) #! Again, adapt for our data
 
     data_to_predict = {"test": test_data}
     model_checkpoint = load_checkpoint(ckpt, use_cuda=use_cuda)

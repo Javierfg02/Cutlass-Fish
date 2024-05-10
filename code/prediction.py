@@ -3,10 +3,14 @@ import math
 import tensorflow as tf
 
 from helpers import bpe_postprocess, load_config, get_latest_checkpoint, calculate_dtw
+from preprocess import create_src, create_trg, create_examples, make_data_iter, map_src_sentences, pad_trg_data
 from model import build_model
 from batch import Batch
 from preprocess import make_data_iter
 from constants import UNK_TOKEN, PAD_TOKEN, EOS_TOKEN
+
+batch_size = 8
+
 
 def preprocess_example(example):
     # Implement conversion of preprocess.Example to tensors
@@ -43,8 +47,12 @@ def validate_on_data(model, data, batch_size, max_output_length, eval_metric, lo
     # valid_iter = iter(valid_dataset) # TODO: NOT A FUNC?
 
     # def make_data_iter(dataset, shuffle=True, train=True):
+    padded_trgs = pad_trg_data(sequences=[data[0].trg], batch_size=batch_size, num_features_per_frame=412)
+    #print("padded_trgs", padded_trgs.shape)
+    #print("td",train_data)
+    valid_batch = map_src_sentences(dataset=data, padded_trgs=padded_trgs)
 
-    valid_iter = make_data_iter(dataset=data, shuffle=True, train=False)
+    valid_iter = make_data_iter(dataset=valid_batch, shuffle=True, train=False)
 
     # pad_index = model.src_vocab.index(PAD_TOKEN)
     pad_index = model.src_vocab.stoi[PAD_TOKEN]
@@ -62,12 +70,17 @@ def validate_on_data(model, data, batch_size, max_output_length, eval_metric, lo
     total_nseqs = 0
 
     batches = 0
+
+    
     for valid_batch in valid_iter:
         # Convert valid_batch to TensorFlow tensors
-        valid_batch = tf.convert_to_tensor(valid_batch)
+        # valid_batch = tf.convert_to_tensor(valid_batch)
+
+        print(f"_VALID_BATCH: {valid_batch}")
+
 
         # Extract batch using Batch class (custom implementation for TensorFlow)
-        batch = Batch(tf_batch=valid_batch,
+        batch = Batch(torch_batch=valid_batch,
                       pad_index=pad_index,
                       model=model)
 
@@ -75,7 +88,7 @@ def validate_on_data(model, data, batch_size, max_output_length, eval_metric, lo
 
         if loss_function is not None and targets is not None:
             # Get the loss for this batch
-            batch_loss, _ = model.get_loss_for_batch(batch, loss_function=loss_function)
+            batch_loss = model.get_loss_for_batch(batch, loss_function=loss_function)
 
             valid_loss += batch_loss.numpy()
             total_ntokens += batch.ntokens
