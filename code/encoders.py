@@ -58,10 +58,11 @@ class TransformerEncoder(tf.keras.Model):
         - output: hidden states with shape (batch_size,max_length,num_heads*hidden)
         """
         # adding positinal encoding
-        inputs = self.pos_encoding(embed)
+        # inputs = self.pos_encoding(embed)
         # adding dropout
-        inputs = self.emb_dropout(inputs)
-
+        # inputs = self.emb_dropout(inputs)
+        embed = tf.expand_dims(embed, axis=0)
+        inputs = embed
         for layer in self.encoder_layers:
             inputs = layer(inputs, padding)
 

@@ -7,15 +7,12 @@ import tensorflow as tf
 import torch
 from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
-from torchtext.data import Dataset
 import pandas as pd
 import re
 from vocabulary import Vocabulary
 import numpy as np
 from random import shuffle
 # import torchtext
-from torchtext import data
-from torchtext.data import Dataset, Iterator, Field
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 
@@ -155,16 +152,16 @@ def pad_trg_data(sequences, batch_size, num_features_per_frame, pad_sequences=Tr
     Returns:
         tf.data.Dataset: A TensorFlow dataset ready for model training.
     """
-    print("dataset: ", sequences)
+    #print("dataset: ", sequences)
     # Create a TensorFlow dataset from the list of tensors
     dataset = tf.data.Dataset.from_tensor_slices(sequences)
 
     # Reshape and batch the dataset
     # Pads the sequences to the maximum length of any sequence in the batch
     padded_shapes = (tf.TensorShape([None, num_features_per_frame]))  # 'None' allows for variable sequence lengths
-    print("padded shapes: ", padded_shapes)
+    #print("padded shapes: ", padded_shapes)
     dataset = dataset.map(lambda x: tf.reshape(x, (-1, num_features_per_frame))).padded_batch(batch_size, padded_shapes=padded_shapes)
-    
+
     return dataset
 
 
@@ -180,13 +177,14 @@ def map_src_sentences(dataset, padded_trgs):
     
     for trg in padded_trgs:
         all_padded_trgs.append(trg)
+    
 
     # First loop to get max length for all src fields in dataset (for padding)
     for example in dataset:
         indexed_tokens = example.src
         # print("INDEXED TOKENS: ", indexed_tokens)
         tokenized_sentences.append(indexed_tokens)
-        print("TARGET: ", example.trg)
+        #print("TARGET: ", example.src)
         # example_trgs.append(example.trg)
     # print("example_trgs: ", example_trgs)
     # for example in dataset:   
@@ -203,7 +201,8 @@ def map_src_sentences(dataset, padded_trgs):
         padded_sequences_tensor = tf.convert_to_tensor(padded_sequences, dtype=tf.int32)
         
         # new_src = padded_sequences_tensor, len_unpadded_seq_tensor
-        new_src = padded_sequences_tensor
+        new_src = padded_sequences_tensor[i]
+        #print("new_src",new_src.shape)
         # print("NEW SRC: ", new_src)
         padded_trg = all_padded_trgs[i]
         # print("padded_trg: ", padded_trg)
@@ -249,6 +248,8 @@ def create_examples(src, trg):
                 trg=trg[key],
                 file_path=key
             )
+           #print('exmp',example.src)
+            #print('exp_trg',example.trg)
             examples.append(example)
         else:
             # print(f'Warning: Key {key} found in source but not in target')
@@ -261,6 +262,8 @@ def test():
     trg_dict = create_trg() # shape = (x, 411 + counter) -> (num frames, data points per frame + counter)
     src_dict = create_src()
     examples = create_examples(src_dict, trg_dict)
+    #len(examples[0].src))
+    
 
     for example in examples[:5]:  # Check the first 5 examples
         counters = example.trg.numpy()[:, -1]  # Extract counter values from the last column
@@ -273,11 +276,11 @@ def test():
         # counters and if it is negative then they are not monotonically increasing
 
         # Print the first 5 frames' info for a quick check
-        print(f"Source: {example.src}\n")
-        print(f"Target: {example.trg}\n")
-        print(f"Target shape: {example.trg.shape}\n")
-        # print(f"Target type: {type(example.trg)}\n")
-        print(f"File Path: {example.file_path}\n")
+        # print(f"Source: {example.src}\n")
+        # print(f"Target: {example.trg}\n")
+        # print(f"Target shape: {example.trg.shape}\n")
+        # # print(f"Target type: {type(example.trg)}\n")
+        # print(f"File Path: {example.file_path}\n")
 
 def main():
     test()

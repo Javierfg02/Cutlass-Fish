@@ -98,8 +98,10 @@ class TransformerDecoder(Decoder):
         # Dropout if given
         x = self.emb_dropout(x)
 
+ 
         padding_mask = trg_mask
-        print("SUB MASK: ", trg_mask.shape)
+        #print("SUB MASK: ", trg_mask.shape)
+        #padding_mask = None
         # Create subsequent mask for decoding
         trg_size = trg_embed.shape[1]  # Get the size from the second dimension of trg_embed
         sub_mask = subsequent_mask(trg_size)

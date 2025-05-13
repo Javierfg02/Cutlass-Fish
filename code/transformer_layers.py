@@ -35,6 +35,17 @@ class MultiHeadedAttention(tf.keras.Model):
         #reshaping 
         k = tf.transpose(tf.reshape(k, [batch_size, -1, self.num_heads, self.head_size]), [0, 2, 1, 3])
         v = tf.transpose(tf.reshape(v, [batch_size, -1, self.num_heads, self.head_size]), [0, 2, 1, 3])
+        # print("q",q.shape)
+        # print("batch size", batch_size)
+        # print("num heads", self.num_heads)
+        # print("head size", self.head_size)
+        q = q[:, :14, :]
+        # q_shape = batch_size, -1, self.num_heads, self.head_size
+
+        # total_elements = self.num_heads * q.shape[1] * self.head_size
+        # new_length = total_elements // (self.num_heads * self.head_size)
+        # q_shape[2] = new_length
+
         q = tf.transpose(tf.reshape(q, [batch_size, -1, self.num_heads, self.head_size]), [0, 2, 1, 3])
 
         #attention scores
@@ -47,15 +58,22 @@ class MultiHeadedAttention(tf.keras.Model):
 
         # masking future tokens in decoder self attention 
         if mask is not None:
+            # print("sim score shape", mask.shape)
+            mask = mask[:,:14,:]
             sim_score = tf.where(~mask[:, tf.newaxis, :], tf.constant(float('-inf'), dtype=sim_score.dtype), sim_score)
             # sim_score = tf.where(~mask, sim_score, float('-inf'))
         
         attention = self.softmax(sim_score)
         attention = self.dropout(sim_score)
-        print("ATTENTION: ", attention.shape)
+        # print("ATTENTION: ", attention.shape)
+
+        #padding_mask = None
 
         if padding_mask is not None:
-            print("padding mask_dec: ", padding_mask.shape)
+
+            # print("padding mask_dec: ", padding_mask.shape)
+            padding_mask= padding_mask[:, :, :14, :200]
+            # print("padding mask_dec2: ", padding_mask.shape)
             attention = tf.where(~padding_mask,0.0,attention)
 
         output = tf.matmul(attention,v)
@@ -151,7 +169,89 @@ class PositionalEncoding(tf.keras.layers.Layer):
         return x + self.pos_encoding[:, :seq_len]
 
 
-class TransformerEncoderLayer(tf.keras.Model):
+# class TransformerEncoderLayer(tf.keras.Model):
+
+#     def __init__(self,
+#                  size: int = 0,
+#                  ff_size: int = 0,
+#                  num_heads: int = 0,
+#                  dropout: float = 0.1):
+
+#         super(TransformerEncoderLayer, self).__init__()
+
+#         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+#         self.src_src_att = MultiHeadedAttention(num_heads, size,
+#                                                 dropout=dropout)
+#         self.feed_forward = PositionwiseFeedForward(size, ff_size=ff_size)
+#         self.dropout = tf.keras.layers.Dropout(dropout)
+#         self.size = size
+
+#     def call(self, x, mask):
+
+#         x_norm = self.layer_norm(x)
+
+#         h = self.src_src_att(x_norm, x_norm, x_norm, mask=mask)
+
+#         h = self.dropout(h) + x
+#         o = self.feed_forward(h)
+#         return o
+    
+# class TransformerDecoderLayer(tf.keras.Model):
+
+#     def __init__(self,
+#                  size: int = 0,
+#                  ff_size: int = 0,
+#                  num_heads: int = 0,
+#                  dropout: float = 0.1,
+#                  decoder_trg_trg: bool = True):
+
+#         super(TransformerDecoderLayer, self).__init__()
+#         self.size = size
+
+#         self.trg_trg_att = MultiHeadedAttention(num_heads, size,
+#                                                 dropout=dropout)
+
+#         self.src_trg_att = MultiHeadedAttention(num_heads, size,
+#                                                 dropout=dropout)
+
+#         self.feed_forward = PositionwiseFeedForward(size, ff_size=ff_size)
+
+#         self.x_layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+#         self.dec_layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+
+#         self.dropout = tf.keras.layers.Dropout(dropout)
+
+#         self.decoder_trg_trg = decoder_trg_trg
+
+#     def call(self,
+#                 x,
+#                 memory,
+#                 src_mask,
+#                 trg_mask,
+#                 padding_mask):
+
+#         # decoder/target self-attention
+#         h1 = self.x_layer_norm(x)
+
+#         # Target-Target Self Attention
+#         #padding_mask = None
+#         if self.decoder_trg_trg:
+#             h1 = self.trg_trg_att(h1, h1, h1, mask=trg_mask, padding_mask=padding_mask)
+#         x = x[:,:14]
+#         h1 = self.dropout(h1) + x
+
+#         # Source-Target Self Attention
+#         h1_norm = self.dec_layer_norm(h1)
+#         h2 = self.src_trg_att(memory, memory, h1_norm, mask=src_mask)
+
+#         # final position-wise feed-forward layer
+#         o = self.feed_forward(self.dropout(h2) + h1)
+
+#         return o
+
+
+
+class TransformerEncoderLayer(tf.keras.layers.Layer):
 
     def __init__(self,
                  size: int = 0,
@@ -162,23 +262,23 @@ class TransformerEncoderLayer(tf.keras.Model):
         super(TransformerEncoderLayer, self).__init__()
 
         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-        self.src_src_att = MultiHeadedAttention(num_heads, size,
-                                                dropout=dropout)
+        self.src_src_att = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=size, dropout=dropout)
         self.feed_forward = PositionwiseFeedForward(size, ff_size=ff_size)
         self.dropout = tf.keras.layers.Dropout(dropout)
         self.size = size
 
     def call(self, x, mask):
-
+        
+        # print("x_encod",x.shape)
         x_norm = self.layer_norm(x)
 
-        h = self.src_src_att(x_norm, x_norm, x_norm, mask=mask)
+        h = self.src_src_att(query=x_norm, value=x_norm, key=x_norm, attention_mask=mask)
 
         h = self.dropout(h) + x
         o = self.feed_forward(h)
         return o
     
-class TransformerDecoderLayer(tf.keras.Model):
+class TransformerDecoderLayer(tf.keras.layers.Layer):
 
     def __init__(self,
                  size: int = 0,
@@ -190,11 +290,9 @@ class TransformerDecoderLayer(tf.keras.Model):
         super(TransformerDecoderLayer, self).__init__()
         self.size = size
 
-        self.trg_trg_att = MultiHeadedAttention(num_heads, size,
-                                                dropout=dropout)
-
-        self.src_trg_att = MultiHeadedAttention(num_heads, size,
-                                                dropout=dropout)
+        self.trg_trg_att = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=size, dropout=dropout)
+        
+        self.src_trg_att = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=size, dropout=dropout)
 
         self.feed_forward = PositionwiseFeedForward(size, ff_size=ff_size)
 
@@ -213,16 +311,21 @@ class TransformerDecoderLayer(tf.keras.Model):
                 padding_mask):
 
         # decoder/target self-attention
+        # print("input",x.shape)
         h1 = self.x_layer_norm(x)
 
         # Target-Target Self Attention
         if self.decoder_trg_trg:
-            h1 = self.trg_trg_att(h1, h1, h1, mask=trg_mask, padding_mask=padding_mask)
-        h1 = self.dropout(h1) + x
+            h1 = self.trg_trg_att(query=h1, value=h1, key=h1, attention_mask=trg_mask)
 
+        h1 = self.dropout(h1) + x
+        # print("x",x.shape)
         # Source-Target Self Attention
         h1_norm = self.dec_layer_norm(h1)
-        h2 = self.src_trg_att(memory, memory, h1_norm, mask=src_mask)
+        # print("h1",h1_norm.shape)
+        # print("memory",memory.shape)
+        # print("src mask", src_mask.shape)
+        h2 = self.src_trg_att(query=h1_norm, value=memory, key=memory, attention_mask=None)
 
         # final position-wise feed-forward layer
         o = self.feed_forward(self.dropout(h2) + h1)
